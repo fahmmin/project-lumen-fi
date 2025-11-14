@@ -1,0 +1,80 @@
+# Savings & Cash Equivalents - Short-Term Investment Guide
+
+## High-Yield Savings Accounts (HYSA)
+**Description**: FDIC-insured savings accounts with competitive interest rates
+**Yield**: 4-5% APY (current rates, variable)
+**Risk Level**: None (FDIC insured up to $250,000)
+**Liquidity**: Immediate access
+**Minimum Deposit**: $0-$100
+
+**Providers**: Ally Bank, Marcus by Goldman Sachs, Capital One 360
+
+**Recommended For**:
+- Emergency fund (3-6 months expenses)
+- Short-term goals (under 1 year)
+- Money needed within months
+- Risk-averse savers
+
+---
+
+## Certificates of Deposit (CDs)
+**Description**: Time-locked savings with fixed interest rate
+**Yield**: 4-5.5% APY (1-5 year terms)
+**Risk Level**: None (FDIC insured)
+**Liquidity**: Low (early withdrawal penalties)
+**Terms**: 3 months to 5 years
+
+**Recommended For**:
+- Money not needed for specific time period
+- Guaranteed return
+- Conservative investors
+- Goals 1-5 years away
+
+**CD Ladder Strategy**: Spread money across multiple CDs with different maturity dates for better liquidity
+
+---
+
+## Money Market Accounts
+**Description**: Hybrid checking/savings account with higher rates
+**Yield**: 4-5% APY
+**Risk Level**: None (FDIC insured)
+**Liquidity**: High (limited monthly transactions)
+**Features**: Check writing, debit card access
+
+**Recommended For**:
+- Emergency fund with easy access
+- Parking cash short-term
+- Better rates than checking accounts
+
+---
+
+## Treasury Money Market Funds
+**Description**: Mutual funds investing in short-term government securities
+**Yield**: 4-5% annually
+**Risk Level**: Very Low (not FDIC insured, but highly stable)
+**Liquidity**: High (T+1 settlement)
+**Minimum Investment**: $1-$3,000
+
+**Recommended For**:
+- Cash portion of investment portfolio
+- Parking money between investments
+- Slightly higher yield than savings accounts
+
+---
+
+## Comparison: When to Use Each
+
+**Emergency Fund (need within days)**:
+→ High-Yield Savings Account or Money Market Account
+
+**Goal in 6-12 months (vacation, large purchase)**:
+→ High-Yield Savings Account or Short-term CD
+
+**Goal in 1-3 years (car, wedding, down payment)**:
+→ CD Ladder or Short-term Bond Fund
+
+**Goal in 3-5 years (medium-term)**:
+→ Mix of CDs and Conservative Bond Funds
+
+**Goal 5+ years (retirement, long-term)**:
+→ Index Funds (stocks) and Bond Funds

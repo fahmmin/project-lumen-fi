@@ -1,0 +1,66 @@
+# Index Funds - Investment Product Guide
+
+## S&P 500 Index Funds
+**Description**: Tracks the S&P 500, representing 500 largest US companies
+**Historical Return**: 10% annually (long-term average)
+**Risk Level**: Moderate
+**Time Horizon**: 5+ years recommended
+**Minimum Investment**: Varies by provider ($1-$3,000)
+**Fees**: 0.03% - 0.20% expense ratio
+
+**Recommended For**:
+- Long-term investors (10+ years)
+- Retirement savings
+- Growth-focused portfolios
+- Investors comfortable with market volatility
+
+**Providers**: Vanguard (VOO), Fidelity (FXAIX), Schwab (SWPPX)
+
+---
+
+## Total Stock Market Index Funds
+**Description**: Entire US stock market exposure (3,000+ companies)
+**Historical Return**: 9-10% annually
+**Risk Level**: Moderate
+**Time Horizon**: 5+ years
+**Minimum Investment**: $1-$3,000
+**Fees**: 0.03% - 0.15%
+
+**Recommended For**:
+- Broad diversification seekers
+- Buy-and-hold investors
+- Core portfolio holding
+
+---
+
+## International Index Funds
+**Description**: Exposure to developed and emerging markets outside US
+**Historical Return**: 6-8% annually (varies by region)
+**Risk Level**: Moderate to High
+**Time Horizon**: 7+ years
+**Fees**: 0.07% - 0.30%
+
+**Recommended For**:
+- Portfolio diversification beyond US
+- Long-term global exposure
+- Risk-tolerant investors
+
+---
+
+## Target-Date Funds
+**Description**: Automatically adjusts stock/bond allocation as retirement date approaches
+**Historical Return**: 6-9% (varies by target date)
+**Risk Level**: Decreases over time (aggressive → conservative)
+**Time Horizon**: Matched to retirement date
+**Fees**: 0.10% - 0.75%
+
+**Recommended For**:
+- Retirement savers who want "set it and forget it"
+- Investors who don't want to manually rebalance
+- Clear retirement timeline
+
+**How It Works**:
+- 30 years to retirement: ~90% stocks, 10% bonds
+- 20 years: ~80% stocks, 20% bonds
+- 10 years: ~60% stocks, 40% bonds
+- At retirement: ~40% stocks, 60% bonds

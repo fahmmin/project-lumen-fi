@@ -1,0 +1,216 @@
+# Corporate Financial Policy Document
+
+## Document ID: FIN-POL-001
+## Version: 2.1
+## Last Updated: 2025-01-15
+
+---
+
+## Purchase Approval Requirements
+
+All purchases must comply with the following approval thresholds:
+
+### Tier 1: Under $1,000
+- Department manager approval required
+- Standard processing time: 1-2 business days
+- Receipt must be submitted within 5 business days
+
+### Tier 2: $1,000 - $10,000
+- Department head approval required
+- Finance department review mandatory
+- Formal purchase order required
+- Processing time: 3-5 business days
+
+### Tier 3: $10,000 - $50,000
+- VP-level approval required
+- CFO review mandatory
+- Board notification required
+- Competitive bidding process recommended
+- Processing time: 7-10 business days
+
+### Tier 4: Over $50,000
+- CEO and CFO approval required
+- Board approval mandatory
+- Formal RFP process required
+- Legal review necessary
+- Processing time: 14-21 business days
+
+---
+
+## Expense Categories
+
+### Office Supplies
+- Standard approval threshold: $500
+- Bulk orders require competitive quotes
+- Preferred vendors must be used when available
+
+### Travel Expenses
+- Pre-approval required for all business travel
+- Economy class for flights under 5 hours
+- Hotel accommodations: $200/night maximum
+- Meal allowances: $75/day
+
+### Software & Technology
+- IT department approval required
+- Security review mandatory
+- Annual subscription limit: $5,000 per user
+
+### Marketing & Advertising
+- Marketing director approval required
+- ROI tracking mandatory
+- Campaign budgets require quarterly review
+
+### Professional Services
+- Consulting agreements require legal review
+- Hourly rate caps apply by service category
+- Statement of Work required for projects over $10,000
+
+---
+
+## Invoice Requirements
+
+All invoices submitted for payment must include:
+
+1. **Vendor Information**
+   - Legal business name
+   - Tax identification number
+   - Complete contact information
+
+2. **Invoice Details**
+   - Unique invoice number
+   - Invoice date
+   - Payment terms
+   - Due date
+
+3. **Line Items**
+   - Detailed description of goods/services
+   - Quantity and unit price
+   - Extended totals
+   - Applicable tax calculations
+
+4. **Supporting Documentation**
+   - Purchase order number
+   - Delivery confirmation (for goods)
+   - Service completion certificate (for services)
+
+---
+
+## Tax Compliance
+
+### Sales Tax
+- Verify correct tax rate for jurisdiction
+- Common rates: 5%, 7%, 10%, 18%, 20%
+- Tax-exempt purchases require exemption certificate
+
+### Value Added Tax (VAT)
+- Standard VAT rates apply to applicable services
+- VAT registration number must be verified
+- Cross-border transactions require special handling
+
+---
+
+## Duplicate Payment Prevention
+
+The following controls are in place to prevent duplicate payments:
+
+1. Invoice numbers are checked against payment history
+2. Vendor + Amount + Date combinations are flagged
+3. Multiple invoices from same vendor on same day trigger review
+4. System automatically holds suspected duplicates
+
+---
+
+## Fraud Prevention Measures
+
+### Red Flags
+
+The following patterns may indicate fraudulent activity:
+
+- **Round Number Amounts**: Invoices for exactly $1,000, $5,000, etc.
+- **Just Below Thresholds**: Amounts suspiciously close to approval limits
+- **Vendor Name Variations**: Similar vendor names with slight differences
+- **Missing Documentation**: Lack of purchase orders or supporting docs
+- **Unusual Payment Terms**: Requests for immediate payment
+- **Weekend Dates**: Invoices dated on weekends or holidays
+
+### Required Actions
+
+When fraud indicators are detected:
+1. Hold payment immediately
+2. Contact vendor for verification
+3. Review historical transactions with vendor
+4. Obtain manager approval before proceeding
+5. Document all verification steps
+
+---
+
+## Vendor Management
+
+### Approved Vendor List
+- All vendors must complete onboarding process
+- W-9 or equivalent tax forms required
+- Background checks for vendors over $50,000 annually
+- Annual vendor performance review
+
+### Vendor Changes
+- Banking information changes require phone verification
+- Email address changes must be confirmed
+- Physical address changes require documentation
+
+---
+
+## Payment Terms
+
+### Standard Terms
+- Net 30 days from invoice date
+- 2% discount for payment within 10 days
+- Late payment fees: 1.5% per month
+
+### Early Payment
+- Approved for strategic vendors only
+- CFO authorization required
+- Must provide financial benefit to company
+
+---
+
+## Compliance & Audit
+
+### Record Retention
+- Invoices and supporting documents: 7 years
+- Contracts and agreements: Life of contract + 7 years
+- Tax records: Per IRS requirements
+
+### Internal Audit
+- Quarterly expense sampling
+- Annual vendor audit
+- Monthly reconciliation of accounts payable
+
+### External Audit
+- Full cooperation required
+- Documentation must be readily available
+- Findings must be addressed within 30 days
+
+---
+
+## Policy Violations
+
+### Minor Violations
+- Missing documentation: Warning + correction required
+- Late submission: Delayed payment
+
+### Major Violations
+- Unauthorized purchases: Disciplinary action
+- Fraudulent submissions: Termination + legal action
+- Policy circumvention: Management review
+
+---
+
+## Contact Information
+
+**Finance Department**: finance@company.com
+**Accounts Payable**: ap@company.com
+**Audit Hotline**: 1-800-XXX-XXXX
+
+---
+
+*This policy is subject to periodic review and updates. All employees are responsible for understanding and complying with these policies.*

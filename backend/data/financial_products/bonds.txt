@@ -1,0 +1,84 @@
+# Bonds - Fixed Income Investment Guide
+
+## US Treasury Bonds
+**Description**: Government-issued debt securities, considered safest investment
+**Yield**: 3-5% annually (current rates)
+**Risk Level**: Very Low
+**Time Horizon**: 1-30 years (depending on maturity)
+**Minimum Investment**: $100 (TreasuryDirect.gov)
+**Tax**: Exempt from state and local taxes
+
+**Types**:
+- T-Bills: Under 1 year maturity
+- T-Notes: 2-10 year maturity
+- T-Bonds: 20-30 year maturity
+
+**Recommended For**:
+- Capital preservation
+- Low-risk portion of portfolio
+- Near-term goals (1-3 years)
+- Retirees seeking steady income
+
+---
+
+## Corporate Bonds
+**Description**: Debt issued by companies to raise capital
+**Yield**: 4-7% annually (investment grade)
+**Risk Level**: Low to Moderate
+**Time Horizon**: 1-10 years
+**Credit Ratings**: AAA to BBB (investment grade)
+
+**Recommended For**:
+- Higher yield than Treasury bonds
+- Moderate risk tolerance
+- Income-focused investors
+- Diversification from stocks
+
+---
+
+## Bond Index Funds
+**Description**: Diversified portfolio of bonds (government + corporate)
+**Yield**: 3-5% annually
+**Risk Level**: Low to Moderate
+**Time Horizon**: 3+ years
+**Fees**: 0.04% - 0.15%
+
+**Popular Funds**:
+- Vanguard Total Bond Market (BND)
+- iShares Core US Aggregate Bond (AGG)
+
+**Recommended For**:
+- Easy bond diversification
+- Lower risk than stocks
+- Balancing stock-heavy portfolios
+- Investors seeking steady income
+
+---
+
+## I Bonds (Inflation-Protected)
+**Description**: US Savings Bonds adjusted for inflation
+**Yield**: Fixed rate + inflation adjustment (currently 5-7%)
+**Risk Level**: Very Low
+**Time Horizon**: 1-30 years (must hold 1 year minimum)
+**Purchase Limit**: $10,000 per person per year
+**Tax**: Deferred until redemption
+
+**Recommended For**:
+- Inflation protection
+- Emergency fund alternative
+- Short to medium-term savings
+- Risk-averse investors
+
+---
+
+## Municipal Bonds
+**Description**: State/local government bonds, tax-advantaged
+**Yield**: 3-4% (tax-free)
+**Risk Level**: Low to Moderate
+**Time Horizon**: 5-20 years
+**Tax**: Federal tax-free, often state tax-free
+
+**Recommended For**:
+- High-income earners (higher tax brackets)
+- Tax-advantaged income
+- Supporting local communities

@@ -1,0 +1,132 @@
+# Asset Allocation Guide - Portfolio Construction
+
+## Time Horizon-Based Allocation
+
+### Very Short-Term (Under 1 Year)
+**Goal Examples**: Emergency fund, upcoming large purchase, wedding
+**Allocation**:
+- 0% Stocks
+- 10% Short-term Bonds
+- 90% Cash/HYSA/Money Market
+
+**Rationale**: Capital preservation is priority. Cannot risk market volatility.
+
+---
+
+### Short-Term (1-3 Years)
+**Goal Examples**: Down payment, car purchase, sabbatical
+**Allocation**:
+- 20% Stocks
+- 50% Bonds
+- 30% Cash
+
+**Rationale**: Need stability with modest growth. Bonds provide income with lower volatility than stocks.
+
+---
+
+### Medium-Term (3-5 Years)
+**Goal Examples**: Graduate school, career change fund, major renovation
+**Allocation**:
+- 40-60% Stocks
+- 35-50% Bonds
+- 5-10% Cash
+
+**Rationale**: Time to recover from market downturns. Balanced approach.
+
+---
+
+### Long-Term (5-10 Years)
+**Goal Examples**: Child's college fund, major life goal
+**Allocation**:
+- 60-70% Stocks
+- 25-35% Bonds
+- 5% Cash
+
+**Rationale**: Growth priority with enough time to ride out volatility.
+
+---
+
+### Very Long-Term (10+ Years)
+**Goal Examples**: Retirement, generational wealth
+**Allocation**:
+- 70-90% Stocks
+- 10-25% Bonds
+- 0-5% Cash
+
+**Rationale**: Maximum growth potential. Decades to recover from downturns.
+
+---
+
+## Risk Tolerance Adjustments
+
+### Conservative Investor
+- Reduce stock allocation by 10-20%
+- Increase bond allocation
+- Prioritize capital preservation
+- Lower expected returns (4-6% annually)
+
+### Moderate Investor
+- Use time horizon guidelines above
+- Balanced growth and safety
+- Expected returns (6-8% annually)
+
+### Aggressive Investor
+- Increase stock allocation by 10-20%
+- Can handle 30-50% drawdowns
+- Higher expected returns (8-10% annually)
+- Longer recovery timeframe acceptable
+
+---
+
+## Sample Portfolios
+
+### Age 25 - Retirement Goal (40 years away)
+- 90% Stocks (US + International)
+- 10% Bonds
+**Expected Return**: 9% annually
+
+### Age 35 - House Down Payment (3 years)
+- 40% Stocks
+- 50% Bonds
+- 10% Cash
+**Expected Return**: 5% annually
+
+### Age 45 - Retirement (20 years away)
+- 75% Stocks
+- 23% Bonds
+- 2% Cash
+**Expected Return**: 7-8% annually
+
+### Age 55 - Retirement (10 years away)
+- 60% Stocks
+- 35% Bonds
+- 5% Cash
+**Expected Return**: 6-7% annually
+
+### Age 65 - In Retirement
+- 40% Stocks
+- 50% Bonds
+- 10% Cash
+**Expected Return**: 5% annually
+**Focus**: Income generation + preservation
+
+---
+
+## Rebalancing Strategy
+
+**Why Rebalance**: Market movements change your allocation
+**When**: Annually or when allocation drifts 5%+ from target
+**How**: Sell overweight assets, buy underweight assets
+**Tax Consideration**: Rebalance in tax-advantaged accounts when possible
+
+---
+
+## The 100-Age Rule (Simple Guideline)
+**Formula**: Stock Allocation = 110 - Your Age
+
+Examples:
+- Age 30: 110 - 30 = 80% stocks
+- Age 50: 110 - 50 = 60% stocks
+- Age 70: 110 - 70 = 40% stocks
+
+**Modern Adjustment**: Some use 120-Age due to longer lifespans
