@@ -1,0 +1,189 @@
+"""
+PDF Report Generator - Simplified for hackathon demo
+"""
+
+from typing import Dict, Optional
+import os
+import uuid
+from datetime import datetime
+from backend.utils.logger import logger
+
+
+class PDFGenerator:
+    """Generates PDF financial reports"""
+
+    def __init__(self):
+        self.output_dir = "backend/data/reports"
+        os.makedirs(self.output_dir, exist_ok=True)
+
+    async def generate_monthly_report(self, user_id: str, dashboard_data: Dict, insights: list) -> str:
+        """
+        Generate monthly financial report
+
+        Returns:
+            Path to generated PDF file
+        """
+        try:
+            # Try to use reportlab if available, otherwise create a simple HTML report
+            try:
+                return await self._generate_with_reportlab(user_id, dashboard_data, insights)
+            except ImportError:
+                logger.warning("ReportLab not available, generating HTML report instead")
+                return await self._generate_html_report(user_id, dashboard_data, insights)
+
+        except Exception as e:
+            logger.error(f"Error generating report: {str(e)}")
+            raise
+
+    async def _generate_with_reportlab(self, user_id: str, dashboard_data: Dict, insights: list) -> str:
+        """Generate PDF using ReportLab"""
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+        # Create filename
+        report_id = uuid.uuid4().hex[:12]
+        filename = f"report_{user_id}_{report_id}.pdf"
+        filepath = os.path.join(self.output_dir, filename)
+
+        # Create PDF
+        doc = SimpleDocTemplate(filepath, pagesize=letter)
+        story = []
+        styles = getSampleStyleSheet()
+
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#1a73e8'),
+            spaceAfter=30,
+        )
+        story.append(Paragraph("PROJECT LUMEN", title_style))
+        story.append(Paragraph("Monthly Financial Report", styles['Heading2']))
+        story.append(Spacer(1, 0.2 * inch))
+
+        # Summary section
+        story.append(Paragraph("Financial Summary", styles['Heading3']))
+        summary = dashboard_data.get('summary', {})
+
+        summary_data = [
+            ['Metric', 'Amount'],
+            ['Income', f"${summary.get('income', 0):.2f}"],
+            ['Total Spent', f"${summary.get('total_spent', 0):.2f}"],
+            ['Savings', f"${summary.get('savings', 0):.2f}"],
+            ['Savings Rate', f"{summary.get('savings_rate', 0) * 100:.1f}%"],
+        ]
+
+        summary_table = Table(summary_data, colWidths=[3 * inch, 2 * inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a73e8')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+
+        story.append(summary_table)
+        story.append(Spacer(1, 0.3 * inch))
+
+        # Spending by category
+        story.append(Paragraph("Spending by Category", styles['Heading3']))
+        spending = dashboard_data.get('spending_by_category', {})
+
+        if spending:
+            spending_data = [['Category', 'Amount']]
+            for category, amount in sorted(spending.items(), key=lambda x: x[1], reverse=True):
+                spending_data.append([category.title(), f"${amount:.2f}"])
+
+            spending_table = Table(spending_data, colWidths=[3 * inch, 2 * inch])
+            spending_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34a853')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+
+            story.append(spending_table)
+            story.append(Spacer(1, 0.3 * inch))
+
+        # AI Insights
+        if insights:
+            story.append(Paragraph("AI Insights & Recommendations", styles['Heading3']))
+            for insight in insights:
+                story.append(Paragraph(f"• {insight}", styles['Normal']))
+                story.append(Spacer(1, 0.1 * inch))
+
+        # Footer
+        story.append(Spacer(1, 0.5 * inch))
+        footer_text = f"Generated by PROJECT LUMEN on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        story.append(Paragraph(footer_text, styles['Italic']))
+
+        # Build PDF
+        doc.build(story)
+
+        logger.info(f"Generated PDF report: {filepath}")
+        return filepath
+
+    async def _generate_html_report(self, user_id: str, dashboard_data: Dict, insights: list) -> str:
+        """Generate HTML report as fallback"""
+        report_id = uuid.uuid4().hex[:12]
+        filename = f"report_{user_id}_{report_id}.html"
+        filepath = os.path.join(self.output_dir, filename)
+
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PROJECT LUMEN - Financial Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; padding: 40px; }}
+        h1 {{ color: #1a73e8; }}
+        table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
+        th, td {{ border: 1px solid #ddd; padding: 12px; text-align: left; }}
+        th {{ background-color: #1a73e8; color: white; }}
+        .insight {{ margin: 10px 0; padding: 10px; background: #f1f3f4; }}
+    </style>
+</head>
+<body>
+    <h1>PROJECT LUMEN</h1>
+    <h2>Monthly Financial Report</h2>
+
+    <h3>Financial Summary</h3>
+    <table>
+        <tr><th>Metric</th><th>Amount</th></tr>
+        <tr><td>Income</td><td>${dashboard_data.get('summary', {}).get('income', 0):.2f}</td></tr>
+        <tr><td>Total Spent</td><td>${dashboard_data.get('summary', {}).get('total_spent', 0):.2f}</td></tr>
+        <tr><td>Savings</td><td>${dashboard_data.get('summary', {}).get('savings', 0):.2f}</td></tr>
+    </table>
+
+    <h3>Spending by Category</h3>
+    <table>
+        <tr><th>Category</th><th>Amount</th></tr>
+        {''.join(f"<tr><td>{cat.title()}</td><td>${amt:.2f}</td></tr>" for cat, amt in dashboard_data.get('spending_by_category', {}).items())}
+    </table>
+
+    <h3>AI Insights</h3>
+    {''.join(f'<div class="insight">• {insight}</div>' for insight in insights)}
+
+    <p><em>Generated by PROJECT LUMEN on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</em></p>
+</body>
+</html>
+"""
+
+        with open(filepath, 'w') as f:
+            f.write(html_content)
+
+        logger.info(f"Generated HTML report: {filepath}")
+        return filepath
+
+
+# Global instance
+pdf_generator = PDFGenerator()

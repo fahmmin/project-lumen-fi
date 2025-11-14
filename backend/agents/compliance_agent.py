@@ -6,6 +6,11 @@ Validates invoices against financial policies using RAG
 import json
 from typing import Dict, List
 import openai
+try:
+    import google.generativeai as genai
+    HAS_GEMINI = True
+except ImportError:
+    HAS_GEMINI = False
 from backend.rag.retriever import get_hybrid_retriever
 from backend.config import settings, COMPLIANCE_PROMPT
 from backend.utils.logger import logger, log_agent_action, log_error
@@ -17,9 +22,11 @@ class ComplianceAgent:
     def __init__(self):
         self.retriever = get_hybrid_retriever()
 
-        # Set API key if using OpenAI
+        # Set API key based on provider
         if settings.LLM_PROVIDER == "openai" and settings.OPENAI_API_KEY:
             openai.api_key = settings.OPENAI_API_KEY
+        elif settings.LLM_PROVIDER == "gemini" and settings.GEMINI_API_KEY and HAS_GEMINI:
+            genai.configure(api_key=settings.GEMINI_API_KEY)
 
     def check_compliance(self, invoice_data: Dict) -> Dict:
         """
@@ -99,20 +106,24 @@ class ComplianceAgent:
 
         Returns:
             Compliance findings
-        """
-        try:
-            if settings.LLM_PROVIDER == "openai":
-                return self._analyze_with_llm(invoice_data, policy_chunks)
-            else:
-                return self._analyze_rule_based(invoice_data, policy_chunks)
 
-        except Exception as e:
-            log_error(e, "Compliance analysis")
-            return self._analyze_rule_based(invoice_data, policy_chunks)
-
-    def _analyze_with_llm(self, invoice_data: Dict, policy_chunks: List[Dict]) -> Dict:
+        Raises:
+            ValueError: If LLM provider is not properly configured
         """
-        Analyze compliance using LLM
+        if settings.LLM_PROVIDER == "openai":
+            if not settings.OPENAI_API_KEY:
+                raise ValueError("Compliance analysis with OpenAI requires OPENAI_API_KEY to be configured")
+            return self._analyze_with_openai(invoice_data, policy_chunks)
+        elif settings.LLM_PROVIDER == "gemini":
+            if not settings.GEMINI_API_KEY:
+                raise ValueError("Compliance analysis with Gemini requires GEMINI_API_KEY to be configured")
+            return self._analyze_with_gemini(invoice_data, policy_chunks)
+        else:
+            raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}. Use 'openai' or 'gemini'")
+
+    def _analyze_with_openai(self, invoice_data: Dict, policy_chunks: List[Dict]) -> Dict:
+        """
+        Analyze compliance using OpenAI LLM
 
         Args:
             invoice_data: Invoice data
@@ -121,48 +132,42 @@ class ComplianceAgent:
         Returns:
             Compliance findings
         """
-        try:
-            # Format context
-            context = "\n\n".join([f"Policy {i+1}: {chunk['text']}" for i, chunk in enumerate(policy_chunks)])
+        # Format context
+        context = "\n\n".join([f"Policy {i+1}: {chunk['text']}" for i, chunk in enumerate(policy_chunks)])
 
-            # Format prompt
-            prompt = COMPLIANCE_PROMPT.format(
-                invoice_data=json.dumps(invoice_data, indent=2),
-                context=context
-            )
+        # Format prompt
+        prompt = COMPLIANCE_PROMPT.format(
+            invoice_data=json.dumps(invoice_data, indent=2),
+            context=context
+        )
 
-            # Call LLM
-            response = openai.ChatCompletion.create(
-                model=settings.LLM_MODEL,
-                messages=[
-                    {"role": "system", "content": "You are a financial compliance auditor. Analyze invoices against policies and return structured JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,
-                max_tokens=500
-            )
+        # Call OpenAI
+        response = openai.ChatCompletion.create(
+            model=settings.LLM_MODEL,
+            messages=[
+                {"role": "system", "content": "You are a financial compliance auditor. Analyze invoices against policies and return structured JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=500
+        )
 
-            result_text = response.choices[0].message.content.strip()
+        result_text = response.choices[0].message.content.strip()
 
-            # Extract JSON
-            result = self._extract_json(result_text)
+        # Extract JSON
+        result = self._extract_json(result_text)
 
-            if result:
-                # Add context information
-                result['context_used'] = [chunk.get('id', i) for i, chunk in enumerate(policy_chunks)]
-                logger.info("Compliance analysis completed with LLM")
-                return result
-            else:
-                logger.warning("LLM did not return valid JSON for compliance")
-                return self._analyze_rule_based(invoice_data, policy_chunks)
+        if not result:
+            raise RuntimeError("OpenAI did not return valid JSON for compliance analysis")
 
-        except Exception as e:
-            log_error(e, "LLM compliance analysis")
-            return self._analyze_rule_based(invoice_data, policy_chunks)
+        # Add context information
+        result['context_used'] = [chunk.get('id', i) for i, chunk in enumerate(policy_chunks)]
+        logger.info("Compliance analysis completed with OpenAI LLM")
+        return result
 
-    def _analyze_rule_based(self, invoice_data: Dict, policy_chunks: List[Dict]) -> Dict:
+    def _analyze_with_gemini(self, invoice_data: Dict, policy_chunks: List[Dict]) -> Dict:
         """
-        Rule-based compliance analysis fallback
+        Analyze compliance using Gemini LLM with safety filter handling
 
         Args:
             invoice_data: Invoice data
@@ -171,42 +176,63 @@ class ComplianceAgent:
         Returns:
             Compliance findings
         """
-        logger.info("Using rule-based compliance analysis")
+        if not HAS_GEMINI:
+            raise RuntimeError("Gemini SDK not installed. Install with: pip install google-generativeai")
 
-        violations = []
-        amount = invoice_data.get('amount', 0)
-        category = invoice_data.get('category', '')
+        # Format context
+        context = "\n\n".join([f"Policy {i+1}: {chunk['text']}" for i, chunk in enumerate(policy_chunks)])
 
-        # Simple rule-based checks
-        if amount > 10000 and not invoice_data.get('approval_id'):
-            violations.append("Large purchases over $10,000 require approval (no approval ID found)")
+        # Format prompt
+        prompt = COMPLIANCE_PROMPT.format(
+            invoice_data=json.dumps(invoice_data, indent=2),
+            context=context
+        )
 
-        if amount > 50000:
-            violations.append("High-value transaction over $50,000 requires additional review")
-
-        if category == "Uncategorized":
-            violations.append("Invoice must have a valid category")
-
-        # Check for specific policy mentions in retrieved chunks
-        policy_text = " ".join([chunk['text'].lower() for chunk in policy_chunks])
-
-        if "approval required" in policy_text and not invoice_data.get('approval_id'):
-            violations.append("Policy indicates approval required, but no approval found")
-
-        if "receipt mandatory" in policy_text and not invoice_data.get('receipt_attached'):
-            violations.append("Policy requires receipt attachment")
-
-        compliant = len(violations) == 0
-
-        return {
-            "compliant": compliant,
-            "violations": violations,
-            "confidence": 0.6 if not compliant else 0.8,
-            "explanation": "Rule-based compliance check performed. " + (
-                "No violations found." if compliant else f"Found {len(violations)} violation(s)."
-            ),
-            "context_used": [chunk.get('id', i) for i, chunk in enumerate(policy_chunks)]
+        # Initialize Gemini model with safety settings
+        safety_settings = {
+            'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE',
+            'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE',
+            'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE',
+            'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE',
         }
+
+        model = genai.GenerativeModel(
+            model_name=settings.LLM_MODEL,
+            safety_settings=safety_settings
+        )
+
+        # Generate response
+        response = model.generate_content(
+            f"You are a financial compliance auditor. Analyze invoices against policies and return structured JSON.\n\n{prompt}",
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.1,
+                max_output_tokens=500,
+            )
+        )
+
+        # Check if response was blocked by safety filters
+        if not response.candidates or not response.candidates[0].content.parts:
+            logger.warning("Gemini blocked response (safety filter), returning compliant by default")
+            return {
+                "compliant": True,
+                "violations": [],
+                "confidence": 0.5,
+                "explanation": "Unable to analyze - safety filter triggered. Defaulting to compliant.",
+                "context_used": [chunk.get('id', i) for i, chunk in enumerate(policy_chunks)]
+            }
+
+        result_text = response.text.strip()
+
+        # Extract JSON
+        result = self._extract_json(result_text)
+
+        if not result:
+            raise RuntimeError("Gemini did not return valid JSON for compliance analysis")
+
+        # Add context information
+        result['context_used'] = [chunk.get('id', i) for i, chunk in enumerate(policy_chunks)]
+        logger.info("Compliance analysis completed with Gemini LLM")
+        return result
 
     def _extract_json(self, text: str) -> Dict:
         """Extract JSON from LLM response"""

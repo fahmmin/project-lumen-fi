@@ -1,0 +1,44 @@
+[
+  {
+    "goal_id": "goal_e0e9f39cb4f6",
+    "user_id": "test_user_001",
+    "name": "Buy a Car",
+    "target_amount": 30000.0,
+    "target_date": "2029-11-14",
+    "current_savings": 3500.0,
+    "progress_percentage": 11.666666666666666,
+    "status": "on_track",
+    "priority": "high",
+    "monthly_contribution": null,
+    "created_at": "2025-11-14 14:30:06.240060",
+    "updated_at": "2025-11-14 14:30:06.240060"
+  },
+  {
+    "goal_id": "goal_82cf63f9045a",
+    "user_id": "test_user_001",
+    "name": "Emergency Fund",
+    "target_amount": 15000.0,
+    "target_date": "2027-11-14",
+    "current_savings": 4500.0,
+    "progress_percentage": 30.0,
+    "status": "on_track",
+    "priority": "critical",
+    "monthly_contribution": null,
+    "created_at": "2025-11-14 14:30:06.240060",
+    "updated_at": "2025-11-14 14:30:06.240060"
+  },
+  {
+    "goal_id": "goal_d514d396a1e8",
+    "user_id": "test_user_001",
+    "name": "Vacation to Europe",
+    "target_amount": 5000.0,
+    "target_date": "2026-09-14",
+    "current_savings": 1200.0,
+    "progress_percentage": 24.0,
+    "status": "on_track",
+    "priority": "medium",
+    "monthly_contribution": null,
+    "created_at": "2025-11-14 14:30:06.249787",
+    "updated_at": "2025-11-14 14:30:06.249787"
+  }
+]

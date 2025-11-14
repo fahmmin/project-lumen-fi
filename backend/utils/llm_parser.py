@@ -37,94 +37,83 @@ class LLMParser:
 
     def parse_document(self, text: str) -> Optional[Dict]:
         """
-        Parse document text into structured JSON
+        Parse document text into structured JSON using LLM
 
         Args:
             text: Extracted document text
 
         Returns:
             Structured document data or None if parsing fails
+
+        Raises:
+            ValueError: If no LLM provider is configured
+            RuntimeError: If LLM parsing fails
         """
-        try:
-            if settings.LLM_PROVIDER == "openai":
-                return self._parse_openai(text)
-            elif settings.LLM_PROVIDER == "gemini":
-                return self._parse_gemini(text)
-            else:
-                logger.warning("No LLM configured, using rule-based fallback")
-                return self._parse_fallback(text)
+        if settings.LLM_PROVIDER == "openai":
+            if not settings.OPENAI_API_KEY:
+                raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
+            return self._parse_openai(text)
+        elif settings.LLM_PROVIDER == "gemini":
+            if not settings.GEMINI_API_KEY:
+                raise ValueError("Gemini provider selected but GEMINI_API_KEY is not configured")
+            return self._parse_gemini(text)
+        else:
+            raise ValueError(f"Invalid LLM provider: {settings.LLM_PROVIDER}. Must be 'openai' or 'gemini'")
 
-        except Exception as e:
-            log_error(e, "Document parsing")
-            return self._parse_fallback(text)
+    def _parse_openai(self, text: str) -> Dict:
+        """Parse using OpenAI API - requires valid API key"""
+        prompt = EXTRACTION_PROMPT.format(text=text)
 
-    def _parse_openai(self, text: str) -> Optional[Dict]:
-        """Parse using OpenAI API"""
-        try:
-            prompt = EXTRACTION_PROMPT.format(text=text)
+        response = openai.ChatCompletion.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": "You are a precise financial document parser. Return only valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=self.temperature,
+            max_tokens=self.max_tokens
+        )
 
-            response = openai.ChatCompletion.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are a precise financial document parser. Return only valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
+        result_text = response.choices[0].message.content.strip()
+
+        # Extract JSON from response
+        parsed_data = self._extract_json(result_text)
+
+        if not parsed_data:
+            raise RuntimeError("LLM did not return valid JSON. Unable to parse document.")
+
+        logger.info("Successfully parsed document with OpenAI LLM")
+        return self._validate_and_clean(parsed_data)
+
+    def _parse_gemini(self, text: str) -> Dict:
+        """Parse using Google Gemini API - requires valid API key and SDK"""
+        if not HAS_GEMINI:
+            raise RuntimeError("Gemini SDK not installed. Install with: pip install google-generativeai")
+
+        prompt = EXTRACTION_PROMPT.format(text=text)
+
+        # Initialize Gemini model
+        model = genai.GenerativeModel(self.model)
+
+        # Generate response
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
                 temperature=self.temperature,
-                max_tokens=self.max_tokens
+                max_output_tokens=self.max_tokens,
             )
+        )
 
-            result_text = response.choices[0].message.content.strip()
+        result_text = response.text.strip()
 
-            # Extract JSON from response
-            parsed_data = self._extract_json(result_text)
+        # Extract JSON from response
+        parsed_data = self._extract_json(result_text)
 
-            if parsed_data:
-                logger.info("Successfully parsed document with LLM")
-                return self._validate_and_clean(parsed_data)
-            else:
-                logger.warning("LLM did not return valid JSON")
-                return self._parse_fallback(text)
+        if not parsed_data:
+            raise RuntimeError("Gemini LLM did not return valid JSON. Unable to parse document.")
 
-        except Exception as e:
-            log_error(e, "OpenAI parsing")
-            return self._parse_fallback(text)
-
-    def _parse_gemini(self, text: str) -> Optional[Dict]:
-        """Parse using Google Gemini API"""
-        try:
-            if not HAS_GEMINI:
-                logger.warning("Gemini SDK not installed, using fallback")
-                return self._parse_fallback(text)
-
-            prompt = EXTRACTION_PROMPT.format(text=text)
-
-            # Initialize Gemini model
-            model = genai.GenerativeModel(self.model)
-
-            # Generate response
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=self.temperature,
-                    max_output_tokens=self.max_tokens,
-                )
-            )
-
-            result_text = response.text.strip()
-
-            # Extract JSON from response
-            parsed_data = self._extract_json(result_text)
-
-            if parsed_data:
-                logger.info("Successfully parsed document with Gemini")
-                return self._validate_and_clean(parsed_data)
-            else:
-                logger.warning("Gemini did not return valid JSON")
-                return self._parse_fallback(text)
-
-        except Exception as e:
-            log_error(e, "Gemini parsing")
-            return self._parse_fallback(text)
+        logger.info("Successfully parsed document with Gemini LLM")
+        return self._validate_and_clean(parsed_data)
 
     def _extract_json(self, text: str) -> Optional[Dict]:
         """Extract JSON from text that may contain markdown or other formatting"""
@@ -154,150 +143,50 @@ class LLMParser:
 
         return None
 
-    def _parse_fallback(self, text: str) -> Dict:
-        """
-        Fallback rule-based parsing
-
-        Args:
-            text: Document text
-
-        Returns:
-            Extracted data (best effort)
-        """
-        logger.info("Using rule-based fallback parser")
-
-        data = {
-            "vendor": self._extract_vendor(text),
-            "date": self._extract_date(text),
-            "amount": self._extract_amount(text),
-            "tax": self._extract_tax(text),
-            "category": "Uncategorized",
-            "invoice_number": self._extract_invoice_number(text)
-        }
-
-        return data
-
-    def _extract_vendor(self, text: str) -> str:
-        """Extract vendor name (first line heuristic)"""
-        lines = text.split('\n')
-        for line in lines[:5]:  # Check first 5 lines
-            line = line.strip()
-            if len(line) > 3 and not line.isdigit():
-                return line
-        return "Unknown Vendor"
-
-    def _extract_date(self, text: str) -> str:
-        """Extract date using regex"""
-        # Common date patterns
-        patterns = [
-            r'\b(\d{4}-\d{2}-\d{2})\b',  # YYYY-MM-DD
-            r'\b(\d{2}/\d{2}/\d{4})\b',  # MM/DD/YYYY
-            r'\b(\d{2}-\d{2}-\d{4})\b',  # DD-MM-YYYY
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, text)
-            if match:
-                date_str = match.group(1)
-                # Convert to YYYY-MM-DD format
-                if '/' in date_str:
-                    parts = date_str.split('/')
-                    if len(parts[2]) == 4:
-                        return f"{parts[2]}-{parts[0]}-{parts[1]}"
-                return date_str
-
-        return "Unknown"
-
-    def _extract_amount(self, text: str) -> float:
-        """Extract total amount"""
-        # Look for "total" followed by amount
-        patterns = [
-            r'total[:\s]*\$?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)',
-            r'amount[:\s]*\$?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)',
-            r'\$\s*(\d+(?:,\d{3})*(?:\.\d{2})?)',
-        ]
-
-        amounts = []
-        for pattern in patterns:
-            matches = re.finditer(pattern, text, re.IGNORECASE)
-            for match in matches:
-                amount_str = match.group(1).replace(',', '')
-                try:
-                    amounts.append(float(amount_str))
-                except ValueError:
-                    pass
-
-        return max(amounts) if amounts else 0.0
-
-    def _extract_tax(self, text: str) -> float:
-        """Extract tax amount"""
-        patterns = [
-            r'tax[:\s]*\$?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)',
-            r'vat[:\s]*\$?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)',
-            r'gst[:\s]*\$?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)',
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                tax_str = match.group(1).replace(',', '')
-                try:
-                    return float(tax_str)
-                except ValueError:
-                    pass
-
-        return 0.0
-
-    def _extract_invoice_number(self, text: str) -> str:
-        """Extract invoice/receipt number"""
-        patterns = [
-            r'invoice\s*#?\s*[:\-]?\s*([A-Z0-9\-]+)',
-            r'receipt\s*#?\s*[:\-]?\s*([A-Z0-9\-]+)',
-            r'ref\s*#?\s*[:\-]?\s*([A-Z0-9\-]+)',
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                return match.group(1)
-
-        return "N/A"
-
     def _validate_and_clean(self, data: Dict) -> Dict:
         """
-        Validate and clean parsed data
+        Validate and clean parsed data - enforces required fields from LLM
 
         Args:
             data: Parsed data dictionary
 
         Returns:
             Cleaned and validated data
+
+        Raises:
+            ValueError: If required fields are missing
         """
         # Ensure required fields exist
         required_fields = ['vendor', 'date', 'amount']
+        missing_fields = []
         for field in required_fields:
-            if field not in data or data[field] is None:
-                data[field] = "Unknown" if field != 'amount' else 0.0
+            if field not in data or data[field] is None or data[field] == "":
+                missing_fields.append(field)
+
+        if missing_fields:
+            raise ValueError(f"LLM failed to extract required fields: {', '.join(missing_fields)}")
 
         # Ensure numeric fields are numbers
         if isinstance(data.get('amount'), str):
             try:
                 data['amount'] = float(data['amount'].replace(',', '').replace('$', ''))
             except ValueError:
-                data['amount'] = 0.0
+                raise ValueError(f"Invalid amount value from LLM: {data.get('amount')}")
 
-        if isinstance(data.get('tax'), str):
+        if data.get('tax') is not None and isinstance(data.get('tax'), str):
             try:
                 data['tax'] = float(data['tax'].replace(',', '').replace('$', ''))
             except ValueError:
-                data['tax'] = 0.0
+                raise ValueError(f"Invalid tax value from LLM: {data.get('tax')}")
+        elif data.get('tax') is None:
+            data['tax'] = 0.0
 
-        # Default optional fields
-        if 'category' not in data:
-            data['category'] = "Uncategorized"
+        # Validate optional fields - LLM should provide these
+        if 'category' not in data or not data['category']:
+            raise ValueError("LLM must provide a category for the expense")
 
-        if 'invoice_number' not in data:
-            data['invoice_number'] = "N/A"
+        if 'invoice_number' not in data or not data['invoice_number']:
+            raise ValueError("LLM must provide an invoice number or identifier")
 
         return data
 

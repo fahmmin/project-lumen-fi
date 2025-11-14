@@ -1,6 +1,9 @@
 """
 PROJECT LUMEN - Seed Data Script
+⚠️  WARNING: This script creates DUMMY/TEST data for development purposes only ⚠️
 Creates dummy user and test receipts for demo/testing
+
+DO NOT USE IN PRODUCTION - This creates fake financial data
 """
 
 import sys
@@ -224,6 +227,16 @@ def main():
     """Run seed data script"""
     print("=" * 60)
     print("PROJECT LUMEN - Seed Data Script")
+    print("⚠️  WARNING: CREATING DUMMY/TEST DATA ⚠️")
+    print("This script creates FAKE financial data for testing only")
+    print("=" * 60)
+
+    # Require confirmation
+    response = input("\nAre you sure you want to create dummy data? (yes/no): ")
+    if response.lower() != "yes":
+        print("Seed data creation cancelled.")
+        return
+
     print("=" * 60)
 
     # Create user

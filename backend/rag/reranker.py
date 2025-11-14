@@ -32,7 +32,7 @@ class MonoT5Reranker:
 
     def rerank(self, query: str, chunks: List[Dict], top_k: int = 5) -> List[Dict]:
         """
-        Rerank chunks using MonoT5
+        Rerank chunks using MonoT5 model - requires model to be loaded
 
         Args:
             query: Search query
@@ -41,32 +41,29 @@ class MonoT5Reranker:
 
         Returns:
             Reranked chunks with relevance scores
+
+        Raises:
+            RuntimeError: If reranker model is not loaded
         """
         if not chunks:
             return []
 
         if self.model is None or self.tokenizer is None:
-            logger.warning("Reranker not available, using score-based sorting")
-            return self._fallback_rerank(chunks, top_k)
+            raise RuntimeError("Reranker model not loaded. Cannot perform reranking without MonoT5 model.")
 
-        try:
-            # Prepare inputs
-            pairs = [(query, chunk['text']) for chunk in chunks]
-            scores = self._score_pairs(pairs)
+        # Prepare inputs
+        pairs = [(query, chunk['text']) for chunk in chunks]
+        scores = self._score_pairs(pairs)
 
-            # Add scores to chunks
-            for chunk, score in zip(chunks, scores):
-                chunk['rerank_score'] = score
+        # Add scores to chunks
+        for chunk, score in zip(chunks, scores):
+            chunk['rerank_score'] = score
 
-            # Sort by rerank score
-            reranked = sorted(chunks, key=lambda x: x['rerank_score'], reverse=True)
+        # Sort by rerank score
+        reranked = sorted(chunks, key=lambda x: x['rerank_score'], reverse=True)
 
-            logger.info(f"Reranked {len(chunks)} chunks, returning top {top_k}")
-            return reranked[:top_k]
-
-        except Exception as e:
-            log_error(e, "Reranking")
-            return self._fallback_rerank(chunks, top_k)
+        logger.info(f"Reranked {len(chunks)} chunks with MonoT5, returning top {top_k}")
+        return reranked[:top_k]
 
     def _score_pairs(self, pairs: List[tuple]) -> List[float]:
         """
@@ -137,27 +134,6 @@ class MonoT5Reranker:
             scores.append(score)
 
         return scores
-
-    def _fallback_rerank(self, chunks: List[Dict], top_k: int) -> List[Dict]:
-        """
-        Fallback reranking using existing scores
-
-        Args:
-            chunks: Chunks with scores
-            top_k: Number to return
-
-        Returns:
-            Sorted chunks
-        """
-        # Try to use existing scores
-        if chunks and 'score' in chunks[0]:
-            sorted_chunks = sorted(chunks, key=lambda x: x.get('score', 0), reverse=True)
-        elif chunks and 'bm25_score' in chunks[0]:
-            sorted_chunks = sorted(chunks, key=lambda x: x.get('bm25_score', 0), reverse=True)
-        else:
-            sorted_chunks = chunks
-
-        return sorted_chunks[:top_k]
 
 
 # Global reranker instance

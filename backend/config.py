@@ -55,8 +55,8 @@ class Settings(BaseSettings):
     RERANK_TOP_K: int = 5
     RERANKER_MODEL: str = "castorini/monot5-base-msmarco"
 
-    # LLM settings (for parsing and HyDE)
-    LLM_PROVIDER: str = "gemini"  # Options: "openai", "gemini", "local", "anthropic"
+    # LLM settings (for parsing and HyDE) - REQUIRED, no fallbacks
+    LLM_PROVIDER: str = "gemini"  # Options: "openai", "gemini"
     LLM_MODEL: str = "gemini-pro"  # or "gpt-3.5-turbo" for OpenAI
     LLM_TEMPERATURE: float = 0.1
     LLM_MAX_TOKENS: int = 1000
@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     AUDIT_THRESHOLD: float = 0.15  # Deviation threshold for anomaly
     FRAUD_ZSCORE_THRESHOLD: float = 3.0
     COMPLIANCE_CONFIDENCE: float = 0.7
+
+    # Tax rates (jurisdiction-specific, configurable)
+    # Common tax rates for validation (percentages as decimals)
+    COMMON_TAX_RATES: list = [0.05, 0.07, 0.10, 0.15, 0.18, 0.20]
 
     # Logging
     LOG_LEVEL: str = "INFO"

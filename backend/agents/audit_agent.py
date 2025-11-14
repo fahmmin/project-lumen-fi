@@ -178,16 +178,17 @@ class AuditAgent:
                     f"Total mismatch: Invoice total ${amount:.2f} != Items total ${items_total:.2f} + Tax ${tax:.2f} = ${expected_total:.2f}"
                 )
 
-        # Check tax calculation (simplified - assumes standard rate)
+        # Check tax calculation (uses configurable common tax rates)
         if items and tax > 0:
             items_subtotal = sum(item.get('total', 0) for item in items)
             if items_subtotal > 0:
                 tax_rate = tax / items_subtotal
-                # Common tax rates: 0, 5%, 7%, 10%, 15%, 18%, 20%
-                common_rates = [0.05, 0.07, 0.10, 0.15, 0.18, 0.20]
+                # Use configurable common tax rates from settings
+                common_rates = settings.COMMON_TAX_RATES
                 if not any(abs(tax_rate - rate) < 0.01 for rate in common_rates):
+                    expected_rates_str = ', '.join([f"{r*100:.0f}%" for r in common_rates])
                     errors.append(
-                        f"Unusual tax rate: {tax_rate*100:.1f}% (expected common rates: 5%, 7%, 10%, 15%, 18%, 20%)"
+                        f"Unusual tax rate: {tax_rate*100:.1f}% (expected common rates: {expected_rates_str})"
                     )
 
         return errors

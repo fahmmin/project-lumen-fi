@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 import time
 
 from backend.config import settings
-from backend.routers import ingest, audit, memory, users, goals, personal_finance, reminders, subscriptions, forensics
+from backend.routers import ingest, audit, memory, users, goals, personal_finance, reminders, subscriptions, forensics, gamification, websocket, voice, family, social, reports, email_integration
 from backend.utils.logger import logger
 
 # Initialize FastAPI app
@@ -68,6 +68,13 @@ app.include_router(personal_finance.router)
 app.include_router(reminders.router)
 app.include_router(subscriptions.router)
 app.include_router(forensics.router)
+app.include_router(gamification.router)  # Phase 2: Gamification
+app.include_router(websocket.router)  # Phase 2: Real-time alerts
+app.include_router(voice.router)  # Phase 2: Voice upload
+app.include_router(family.router)  # Phase 2: Family budgets
+app.include_router(social.router)  # Phase 2: Social comparison
+app.include_router(reports.router)  # Phase 2: PDF reports
+app.include_router(email_integration.router)  # Phase 2: Email parsing
 
 
 # Root endpoint
@@ -89,7 +96,15 @@ async def root():
             "finance": "/finance",
             "reminders": "/reminders",
             "subscriptions": "/subscriptions",
-            "forensics": "/forensics"
+            "forensics": "/forensics",
+            "gamification": "/gamification",
+            "websocket": "/ws",
+            "alerts": "/alerts",
+            "voice": "/voice",
+            "family": "/family",
+            "social": "/social",
+            "reports": "/reports",
+            "email": "/email"
         }
     }
 

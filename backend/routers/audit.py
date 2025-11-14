@@ -14,15 +14,18 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 
 
 class InvoiceData(BaseModel):
-    """Invoice data model"""
+    """
+    Invoice data model - all fields from LLM parsing
+    Note: LLM parser requires all fields to be present, no defaults used
+    """
     vendor: str
     date: str
     amount: float
-    tax: Optional[float] = 0.0
-    category: Optional[str] = "Uncategorized"
-    invoice_number: Optional[str] = "N/A"
-    items: Optional[List[Dict]] = []
-    payment_method: Optional[str] = None
+    tax: float  # LLM must provide, or 0.0 if not found
+    category: str  # LLM must provide category, no "Uncategorized" fallback
+    invoice_number: str  # LLM must provide invoice number or identifier
+    items: Optional[List[Dict]] = []  # May be empty if no line items
+    payment_method: Optional[str] = None  # Optional field
 
 
 class AuditRequest(BaseModel):
