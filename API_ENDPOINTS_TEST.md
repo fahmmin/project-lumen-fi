@@ -512,3 +512,4 @@ curl -s -X POST "$BASE_URL/reports/generate/$USER_ID?period=month" | jq .
 echo "Done!"
 ```
 
+
