@@ -413,7 +413,11 @@ export function UnifiedAuditFlow() {
                             <div className="flex gap-4">
                                 <Button
                                     onClick={() => {
-                                        router.push('/store');
+                                        if (auditResult?.audit_id) {
+                                            router.push(`/store?auditId=${auditResult.audit_id}`);
+                                        } else {
+                                            router.push('/store');
+                                        }
                                         setOpen(false);
                                     }}
                                     className="flex-1"

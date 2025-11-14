@@ -357,7 +357,10 @@ export default function AuditPage() {
 
                                 {/* Actions */}
                                 <div className="flex gap-4">
-                                    <Link href="/store" className="flex-1">
+                                    <Link
+                                        href={auditResult?.audit_id ? `/store?auditId=${auditResult.audit_id}` : '/store'}
+                                        className="flex-1"
+                                    >
                                         <Button className="w-full">
                                             Store on Blockchain
                                             <ArrowRight className="h-4 w-4 ml-2" />
