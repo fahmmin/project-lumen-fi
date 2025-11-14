@@ -55,13 +55,22 @@ class Settings(BaseSettings):
     RERANK_TOP_K: int = 5
     RERANKER_MODEL: str = "castorini/monot5-base-msmarco"
 
-    # LLM settings (for parsing and HyDE) - REQUIRED, no fallbacks
-    LLM_PROVIDER: str = "gemini"  # Options: "openai", "gemini"
-    LLM_MODEL: str = "gemini-pro"  # or "gpt-3.5-turbo" for OpenAI
+    # LLM settings (for parsing and HyDE)
+    LLM_PROVIDER: str = "ollama"  # Options: "openai", "gemini", "ollama"
+    LLM_MODEL: str = "llama3.1:8b"  # Ollama model name
     LLM_TEMPERATURE: float = 0.1
     LLM_MAX_TOKENS: int = 1000
+
+    # Ollama settings (for local LLM)
+    OLLAMA_BASE_URL: str = "http://172.16.163.34:11434"  # Change to GPU server IP if on different machine
+    OLLAMA_MODEL: str = "llama3.1:8b"
+
+    # Cloud API keys (fallback, not used when LLM_PROVIDER=ollama)
     OPENAI_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
+
+    # MongoDB settings
+    MONGO_URI: Optional[str] = None
 
     # Agent settings
     AUDIT_THRESHOLD: float = 0.15  # Deviation threshold for anomaly
@@ -71,9 +80,6 @@ class Settings(BaseSettings):
     # Tax rates (jurisdiction-specific, configurable)
     # Common tax rates for validation (percentages as decimals)
     COMMON_TAX_RATES: list = [0.05, 0.07, 0.10, 0.15, 0.18, 0.20]
-
-    # Database settings
-    MONGO_URI: Optional[str] = None  # MongoDB connection string
 
     # Logging
     LOG_LEVEL: str = "INFO"
@@ -121,22 +127,32 @@ DOCUMENT_SCHEMA = {
 
 # Prompt templates
 EXTRACTION_PROMPT = """
-You are a financial document parser. Extract structured information from the following text.
+You are a financial document parser specializing in receipts and invoices. Extract structured information from the following text.
+
+IMPORTANT INSTRUCTIONS:
+- Extract the TOTAL amount as a number (remove currency symbols ₹, Rs, $)
+- If amount is "Rs450" or "₹450", extract as 450.0 (not 4.5)
+- If amount has comma like "Rs1,250" or "₹1,250", extract as 1250.0
+- Date format MUST be YYYY-MM-DD
+- Common Indian vendors: Zomato, Swiggy, BigBasket, Flipkart, Amazon, Paytm, Myntra, PhonePe, Google Pay
+- Categories: dining, groceries, shopping, entertainment, transportation, healthcare, utilities, travel
 
 Text:
 {text}
 
-Return a JSON object with these fields:
-- vendor: The merchant/vendor name
-- date: Transaction date (YYYY-MM-DD format)
-- amount: Total amount (number)
-- tax: Tax amount (number, or 0 if not found)
-- category: Expense category (e.g., "Office Supplies", "Travel", "Utilities")
-- items: Array of line items (if available)
-- invoice_number: Invoice/receipt number (if available)
-- payment_method: Payment method (if available)
+Return a JSON object with these EXACT fields:
+{{
+  "vendor": "merchant name",
+  "date": "YYYY-MM-DD",
+  "amount": 450.0,
+  "tax": 45.0,
+  "category": "dining",
+  "items": ["item1", "item2"],
+  "invoice_number": "INV123",
+  "payment_method": "UPI"
+}}
 
-Return only valid JSON, no other text.
+Return ONLY valid JSON, no other text or explanation.
 """
 
 HYDE_PROMPT = """

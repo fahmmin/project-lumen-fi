@@ -63,19 +63,45 @@ export const auditAPI = {
     async executeAudit(invoiceData: InvoiceData, userId?: string): Promise<AuditResponse> {
         try {
             const params = userId ? { user_id: userId } : {};
+            // Ensure all required fields have valid values
+            const sanitizedData = {
+                vendor: invoiceData.vendor || '',
+                date: invoiceData.date || new Date().toISOString().split('T')[0],
+                amount: invoiceData.amount || 0,
+                tax: invoiceData.tax ?? 0,
+                category: invoiceData.category || 'general',
+                invoice_number: invoiceData.invoice_number || '',
+                items: invoiceData.items || [],
+                payment_method: invoiceData.payment_method || null,
+            };
             const response = await axios.post<AuditResponse>(
                 `${API_BASE_URL}/audit/`,
                 {
-                    invoice_data: invoiceData,
+                    invoice_data: sanitizedData,
                 },
                 { params }
             );
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                throw new Error(
-                    error.response?.data?.detail || 'Failed to execute audit'
-                );
+                const errorDetail = error.response?.data?.detail;
+                let errorMessage = 'Failed to execute audit';
+
+                if (typeof errorDetail === 'string') {
+                    errorMessage = errorDetail;
+                } else if (Array.isArray(errorDetail)) {
+                    // Handle Pydantic validation errors
+                    const validationErrors = errorDetail.map((err: any) => {
+                        const field = err.loc?.join('.') || 'unknown';
+                        const msg = err.msg || 'validation error';
+                        return `${field}: ${msg}`;
+                    }).join(', ');
+                    errorMessage = `Validation error: ${validationErrors}`;
+                } else if (errorDetail && typeof errorDetail === 'object') {
+                    errorMessage = JSON.stringify(errorDetail);
+                }
+
+                throw new Error(errorMessage);
             }
             throw error;
         }

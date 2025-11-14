@@ -4,8 +4,8 @@ Handles audit execution
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
-from typing import Dict, List, Optional
+from pydantic import BaseModel, model_validator
+from typing import Dict, List, Optional, Any
 
 from backend.agents.orchestrator import run_audit, get_orchestrator
 from backend.utils.logger import logger
@@ -16,16 +16,48 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 class InvoiceData(BaseModel):
     """
     Invoice data model - all fields from LLM parsing
-    Note: LLM parser requires all fields to be present, no defaults used
+    Note: Some fields have defaults to be more lenient with frontend requests
     """
     vendor: str
     date: str
     amount: float
-    tax: float  # LLM must provide, or 0.0 if not found
-    category: str  # LLM must provide category, no "Uncategorized" fallback
-    invoice_number: str  # LLM must provide invoice number or identifier
+    tax: float = 0.0  # Default to 0.0 if not provided
+    category: str = "general"  # Default category if not provided
+    invoice_number: str = ""  # Default to empty string if not provided
     items: Optional[List[Dict]] = []  # May be empty if no line items
     payment_method: Optional[str] = None  # Optional field
+
+    @model_validator(mode='before')
+    @classmethod
+    def validate_and_set_defaults(cls, data: Any) -> Any:
+        """Convert empty strings and None to defaults before validation"""
+        if isinstance(data, dict):
+            # Handle category
+            if 'category' in data:
+                if data['category'] == '' or data['category'] is None:
+                    data['category'] = "general"
+            else:
+                data['category'] = "general"
+            
+            # Handle tax
+            if 'tax' in data:
+                if data['tax'] is None:
+                    data['tax'] = 0.0
+            else:
+                data['tax'] = 0.0
+            
+            # Handle invoice_number
+            if 'invoice_number' in data:
+                if data['invoice_number'] is None:
+                    data['invoice_number'] = ""
+            else:
+                data['invoice_number'] = ""
+            
+            # Handle items
+            if 'items' not in data or data['items'] is None:
+                data['items'] = []
+        
+        return data
 
 
 class AuditRequest(BaseModel):
@@ -67,6 +99,7 @@ async def execute_audit(request: AuditRequest, user_id: Optional[str] = Query(No
     """
     try:
         logger.info(f"Audit request received for vendor: {request.invoice_data.vendor}")
+        logger.debug(f"Audit request data: vendor={request.invoice_data.vendor}, amount={request.invoice_data.amount}, category={request.invoice_data.category}")
 
         # Convert Pydantic model to dict
         invoice_dict = request.invoice_data.dict()
