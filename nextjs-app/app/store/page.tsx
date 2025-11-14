@@ -258,7 +258,7 @@ export default function StorePage() {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
 
-            // Now proceed with the full flow
+            // Now proceed with the wfull flow
             if (auditReportJSON) {
                 await handleAutoStoreFlow();
                 return;
