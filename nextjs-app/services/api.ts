@@ -60,13 +60,15 @@ export const auditAPI = {
     /**
      * Execute a full audit on invoice data
      */
-    async executeAudit(invoiceData: InvoiceData): Promise<AuditResponse> {
+    async executeAudit(invoiceData: InvoiceData, userId?: string): Promise<AuditResponse> {
         try {
+            const params = userId ? { user_id: userId } : {};
             const response = await axios.post<AuditResponse>(
                 `${API_BASE_URL}/audit/`,
                 {
                     invoice_data: invoiceData,
-                }
+                },
+                { params }
             );
             return response.data;
         } catch (error) {
@@ -82,11 +84,13 @@ export const auditAPI = {
     /**
      * Quick audit (Audit Agent only)
      */
-    async quickAudit(invoiceData: InvoiceData): Promise<any> {
+    async quickAudit(invoiceData: InvoiceData, userId?: string): Promise<any> {
         try {
+            const params = userId ? { user_id: userId } : {};
             const response = await axios.post(
                 `${API_BASE_URL}/audit/quick`,
-                invoiceData
+                invoiceData,
+                { params }
             );
             return response.data;
         } catch (error) {
@@ -129,6 +133,42 @@ export const auditAPI = {
             if (axios.isAxiosError(error)) {
                 throw new Error(
                     error.response?.data?.detail || 'Failed to fetch audit'
+                );
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Get all audits for a user from MongoDB
+     */
+    async getUserAudits(userId: string, limit: number = 100): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/audit/user/${userId}/audits`, {
+                params: { limit },
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to fetch user audits'
+                );
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Get audit statistics for a user
+     */
+    async getUserAuditStats(userId: string): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/audit/user/${userId}/stats`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to fetch audit stats'
                 );
             }
             throw error;
@@ -387,7 +427,6 @@ export const financeAPI = {
     },
 
     async getSpending(userId: string, params?: {
-        period?: 'week' | 'month' | 'quarter' | 'year';
         start_date?: string;
         end_date?: string;
         category?: string;
@@ -520,9 +559,9 @@ export const goalsAPI = {
         }
     },
 
-    async getGoal(goalId: string): Promise<any> {
+    async getGoal(userId: string, goalId: string): Promise<any> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/goals/${goalId}`);
+            const response = await axios.get(`${API_BASE_URL}/goals/${userId}/${goalId}`);
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -534,9 +573,9 @@ export const goalsAPI = {
         }
     },
 
-    async getGoalPlan(goalId: string): Promise<any> {
+    async getGoalPlan(userId: string, goalId: string): Promise<any> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/goals/${goalId}/plan`);
+            const response = await axios.get(`${API_BASE_URL}/finance/${userId}/goals/${goalId}/plan`);
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -548,9 +587,9 @@ export const goalsAPI = {
         }
     },
 
-    async getGoalProgress(goalId: string): Promise<any> {
+    async getGoalProgress(userId: string, goalId: string): Promise<any> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/goals/${goalId}/progress`);
+            const response = await axios.get(`${API_BASE_URL}/finance/${userId}/goals/${goalId}/progress`);
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -562,9 +601,9 @@ export const goalsAPI = {
         }
     },
 
-    async updateGoal(goalId: string, updates: Partial<Goal>): Promise<any> {
+    async updateGoal(goalId: string, userId: string, updates: Partial<Goal>): Promise<any> {
         try {
-            const response = await axios.put(`${API_BASE_URL}/goals/${goalId}`, updates);
+            const response = await axios.put(`${API_BASE_URL}/goals/${goalId}?user_id=${userId}`, updates);
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -576,9 +615,9 @@ export const goalsAPI = {
         }
     },
 
-    async deleteGoal(goalId: string): Promise<any> {
+    async deleteGoal(goalId: string, userId: string): Promise<any> {
         try {
-            const response = await axios.delete(`${API_BASE_URL}/goals/${goalId}`);
+            const response = await axios.delete(`${API_BASE_URL}/goals/${goalId}?user_id=${userId}`);
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -621,26 +660,11 @@ export const remindersAPI = {
         }
     },
 
-    async snoozePattern(patternId: string, snoozeUntil: string): Promise<any> {
-        try {
-            const response = await axios.post(`${API_BASE_URL}/patterns/${patternId}/snooze`, {
-                snooze_until: snoozeUntil,
-            });
-            return response.data;
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                throw new Error(
-                    error.response?.data?.detail || 'Failed to snooze pattern'
-                );
-            }
-            throw error;
-        }
-    },
-
     async dismissReminder(reminderId: string): Promise<any> {
         try {
-            const response = await axios.delete(`${API_BASE_URL}/reminders/${reminderId}`);
-            return response.data;
+            // Note: Backend doesn't have a dismiss endpoint yet, this is a placeholder
+            // The reminders are generated dynamically, so dismissing would need backend support
+            throw new Error('Dismiss reminder endpoint not yet implemented in backend');
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 throw new Error(
@@ -706,14 +730,415 @@ export const subscriptionsAPI = {
         }
     },
 
-    async getSavings(userId: string): Promise<any> {
+    // Note: getSavings endpoint doesn't exist in backend
+    // Use getUnusedSubscriptions instead which includes total_potential_savings
+};
+
+// Gamification API
+export const gamificationAPI = {
+    async awardPoints(userId: string, activity: string, metadata?: any): Promise<any> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/subscriptions/${userId}/savings`);
+            const response = await axios.post(`${API_BASE_URL}/gamification/points/award`, {
+                user_id: userId,
+                activity,
+                metadata,
+            });
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 throw new Error(
-                    error.response?.data?.detail || 'Failed to get savings'
+                    error.response?.data?.detail || 'Failed to award points'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getUserStats(userId: string): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/gamification/stats/${userId}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get user stats'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getLeaderboard(limit: number = 10, userId?: string): Promise<any[]> {
+        try {
+            const params = new URLSearchParams({ limit: limit.toString() });
+            if (userId) params.append('user_id', userId);
+            const response = await axios.get(`${API_BASE_URL}/gamification/leaderboard?${params}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get leaderboard'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getUserBadges(userId: string): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/gamification/badges/${userId}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get badges'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async recordDailyLogin(userId: string): Promise<any> {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/gamification/daily-login/${userId}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to record daily login'
+                );
+            }
+            throw error;
+        }
+    },
+};
+
+// Family API
+export const familyAPI = {
+    async createFamily(data: { name: string; description?: string; created_by: string; shared_budget?: Record<string, number> }): Promise<any> {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/family/create`, data);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to create family'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async joinFamily(inviteCode: string, userId: string, displayName?: string): Promise<any> {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/family/join`, {
+                invite_code: inviteCode,
+                user_id: userId,
+                display_name: displayName,
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to join family'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getFamily(familyId: string): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/family/${familyId}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get family'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getUserFamilies(userId: string): Promise<any[]> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/family/user/${userId}/families`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get user families'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getFamilyDashboard(familyId: string, period: string = 'month'): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/family/${familyId}/dashboard?period=${period}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get family dashboard'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getMemberComparison(familyId: string, userId: string, period: string = 'month'): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/family/${familyId}/member/${userId}/comparison?period=${period}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get member comparison'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async updateFamily(familyId: string, userId: string, updates: any): Promise<any> {
+        try {
+            const response = await axios.put(`${API_BASE_URL}/family/${familyId}/update?user_id=${userId}`, updates);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to update family'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async leaveFamily(familyId: string, userId: string): Promise<any> {
+        try {
+            const response = await axios.delete(`${API_BASE_URL}/family/${familyId}/leave?user_id=${userId}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to leave family'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async verifyInviteCode(inviteCode: string): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/family/invite-code/${inviteCode}/verify`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Invalid invite code'
+                );
+            }
+            throw error;
+        }
+    },
+};
+
+// Social Comparison API
+export const socialAPI = {
+    async getUserPercentile(userId: string, period: string = 'month'): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/social/${userId}/percentile?period=${period}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get user percentile'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getCategoryLeaderboard(category: string, period: string = 'month', limit: number = 10): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/social/category/${category}/leaderboard?period=${period}&limit=${limit}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get category leaderboard'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getSocialInsights(userId: string, period: string = 'month'): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/social/insights/${userId}?period=${period}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get social insights'
+                );
+            }
+            throw error;
+        }
+    },
+};
+
+// Reports API
+export const reportsAPI = {
+    async generateReport(userId: string, reportType: string = 'monthly_summary', period: string = 'month'): Promise<any> {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/reports/generate/${userId}?report_type=${reportType}&period=${period}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to generate report'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async downloadReport(filename: string): Promise<Blob> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/reports/download/${filename}`, {
+                responseType: 'blob',
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to download report'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getReportHistory(userId: string, limit: number = 10): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/reports/${userId}/history?limit=${limit}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get report history'
+                );
+            }
+            throw error;
+        }
+    },
+};
+
+// Voice API
+export const voiceAPI = {
+    async transcribeAudio(audioFile: File): Promise<any> {
+        try {
+            const formData = new FormData();
+            formData.append('audio', audioFile);
+            const response = await axios.post(`${API_BASE_URL}/voice/transcribe`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to transcribe audio'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async uploadReceiptByVoice(audioFile: File, userId: string): Promise<any> {
+        try {
+            const formData = new FormData();
+            formData.append('audio', audioFile);
+            formData.append('user_id', userId);
+            const response = await axios.post(`${API_BASE_URL}/voice/upload-receipt`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to upload receipt by voice'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getSupportedFormats(): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/voice/supported-formats`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get supported formats'
+                );
+            }
+            throw error;
+        }
+    },
+};
+
+// Email API
+export const emailAPI = {
+    async parseReceipt(userId: string, emailSubject: string, emailBody: string, senderEmail?: string): Promise<any> {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/email/parse-receipt`, {
+                user_id: userId,
+                email_subject: emailSubject,
+                email_body: emailBody,
+                sender_email: senderEmail,
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to parse email receipt'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async testParser(emailSubject: string, emailBody: string): Promise<any> {
+        try {
+            // Backend uses Body(...) which accepts JSON
+            const response = await axios.post(`${API_BASE_URL}/email/test-parser`, {
+                email_subject: emailSubject,
+                email_body: emailBody,
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to test parser'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getExampleEmail(): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/email/example`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get example email'
                 );
             }
             throw error;

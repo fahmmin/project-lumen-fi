@@ -174,6 +174,13 @@ Return ONLY the JSON object, no additional text."""
                         max_output_tokens=500,
                     )
                 )
+                
+                # Check if response was blocked by safety filters
+                if not response.candidates or not response.candidates[0].content.parts:
+                    finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
+                    logger.warning(f"Gemini blocked email parsing response (safety filter), finish_reason: {finish_reason}")
+                    return None  # Fall back to regex parsing
+                
                 result_text = response.text.strip()
             else:
                 return None

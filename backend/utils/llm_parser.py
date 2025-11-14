@@ -104,6 +104,16 @@ class LLMParser:
             )
         )
 
+        # Check if response was blocked by safety filters
+        if not response.candidates or not response.candidates[0].content.parts:
+            finish_reason = response.candidates[0].finish_reason if response.candidates else "UNKNOWN"
+            logger.warning(f"Gemini blocked response (safety filter), finish_reason: {finish_reason}")
+            raise RuntimeError(
+                f"Document parsing failed: Gemini API safety filter blocked the response. "
+                f"Finish reason: {finish_reason}. "
+                f"Please try with a different document or adjust the content."
+            )
+
         result_text = response.text.strip()
 
         # Extract JSON from response

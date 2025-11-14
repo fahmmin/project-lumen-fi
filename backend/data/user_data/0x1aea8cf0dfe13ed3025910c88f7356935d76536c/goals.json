@@ -1,0 +1,16 @@
+[
+  {
+    "goal_id": "goal_4e987a8423b2",
+    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+    "name": "Test Goal",
+    "target_amount": 10000.0,
+    "target_date": "2025-12-31",
+    "current_savings": 1000.0,
+    "progress_percentage": 10.0,
+    "status": "on_track",
+    "priority": "high",
+    "monthly_contribution": null,
+    "created_at": "2025-11-15 02:29:29.763994",
+    "updated_at": "2025-11-15 02:29:29.764008"
+  }
+]

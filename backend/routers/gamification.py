@@ -129,7 +129,7 @@ async def record_daily_login(user_id: str):
     Record daily login and update streak
 
     **Awards:**
-    - 5 points for daily login
+    - 5 points for daily login (only once per day)
     - Streak badges if thresholds reached
     """
     try:
@@ -138,8 +138,20 @@ async def record_daily_login(user_id: str):
             activity="daily_login"
         )
 
+        # If already logged in today, return success with message
+        if not result.get("success") and "already recorded" in result.get("message", ""):
+            return {
+                "success": True,
+                "already_logged_in": True,
+                "points_earned": 0,
+                "current_streak": result.get("current_streak", 0),
+                "total_points": result.get("total_points", 0),
+                "message": result.get("message", "Daily login already recorded today")
+            }
+
         return {
             "success": True,
+            "already_logged_in": False,
             "points_earned": result.get("points_earned", 0),
             "current_streak": result.get("current_streak", 0),
             "level_up": result.get("level_up", False),

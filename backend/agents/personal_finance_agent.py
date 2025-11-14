@@ -35,10 +35,8 @@ class PersonalFinanceAgent:
         """
         logger.info(f"PersonalFinanceAgent: Generating dashboard for {user_id}")
 
-        # Get user profile
-        profile = self.user_storage.get_profile(user_id)
-        if not profile:
-            raise ValueError(f"User {user_id} not found")
+        # Get user profile (auto-create if doesn't exist)
+        profile = self.user_storage.ensure_profile_exists(user_id)
 
         # Get date range
         end_date = date.today()
@@ -240,6 +238,25 @@ class PersonalFinanceAgent:
             "data_points": len(receipts)
         }
 
+    def get_insights(self, user_id: str, period: str = "month") -> List[str]:
+        """
+        Get AI-powered spending insights for user
+
+        Args:
+            user_id: User ID
+            period: Time period ("month", "quarter", or "year")
+
+        Returns:
+            List of insight strings
+        """
+        logger.info(f"PersonalFinanceAgent: Generating insights for {user_id}")
+        
+        # Get dashboard data which includes insights
+        dashboard = self.analyze_dashboard(user_id, period)
+        
+        # Return insights from dashboard
+        return dashboard.get('insights', [])
+
     def get_budget_recommendations(self, user_id: str) -> Dict:
         """
         Generate budget recommendations
@@ -250,9 +267,8 @@ class PersonalFinanceAgent:
         Returns:
             Budget recommendations
         """
-        profile = self.user_storage.get_profile(user_id)
-        if not profile:
-            raise ValueError(f"User {user_id} not found")
+        # Get user profile (auto-create if doesn't exist)
+        profile = self.user_storage.ensure_profile_exists(user_id)
 
         # Get last 3 months actual spending
         end_date = date.today()

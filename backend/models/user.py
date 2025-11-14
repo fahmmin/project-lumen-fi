@@ -10,9 +10,9 @@ from datetime import datetime
 class UserProfileCreate(BaseModel):
     """User profile creation model"""
     user_id: str = Field(..., description="Unique user identifier")
-    name: str = Field(..., description="User's full name")
-    email: EmailStr = Field(..., description="User's email address")
-    salary_monthly: float = Field(..., ge=0, description="Monthly salary/income")
+    name: Optional[str] = Field(default=None, description="User's full name")
+    email: Optional[EmailStr] = Field(default=None, description="User's email address")
+    salary_monthly: Optional[float] = Field(default=0.0, ge=0, description="Monthly salary/income")
     currency: str = Field(default="USD", description="Currency code")
     budget_categories: Dict[str, float] = Field(
         default_factory=dict,

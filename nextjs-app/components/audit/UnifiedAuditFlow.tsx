@@ -17,6 +17,7 @@ import { ingestionAPI, auditAPI } from '@/services/api';
 import { pinataService } from '@/services/pinata';
 import { hashJSONToBytes32, encryptAuditReport } from '@/services/crypto';
 import { useToast } from '@/components/ui/use-toast';
+import { useUser } from '@/contexts/UserContext';
 import {
     Upload,
     FileText,
@@ -34,6 +35,7 @@ import { AmountDisplay } from '@/components/financial/AmountDisplay';
 type Step = 'idle' | 'uploading' | 'processing' | 'auditing' | 'hashing' | 'complete' | 'error';
 
 export function UnifiedAuditFlow() {
+    const { userId } = useUser();
     const [open, setOpen] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [step, setStep] = useState<Step>('idle');
@@ -167,7 +169,7 @@ export function UnifiedAuditFlow() {
 
             let audit;
             try {
-                audit = await auditAPI.executeAudit(invoiceData);
+                audit = await auditAPI.executeAudit(invoiceData, userId || undefined);
                 setAuditResult(audit);
                 toast({
                     title: 'Audit completed',

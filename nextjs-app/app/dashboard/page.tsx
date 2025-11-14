@@ -13,6 +13,7 @@ import { pinataService } from '@/services/pinata';
 import { decryptAuditReport } from '@/services/crypto';
 import WalletConnect from '@/components/WalletConnect';
 import { useToast } from '@/components/ui/use-toast';
+import { useUser } from '@/contexts/UserContext';
 import { Upload, FileSearch, TrendingUp, Database, ArrowRight, Activity, DollarSign, FileText, AlertTriangle, CheckCircle2, Wallet, XCircle } from 'lucide-react';
 import {
     LineChart,
@@ -48,6 +49,7 @@ interface DecryptedAudit {
 }
 
 export default function Dashboard() {
+    const { userId, isConnected } = useUser();
     const [stats, setStats] = useState<any>(null);
     const [recentAudits, setRecentAudits] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -56,6 +58,8 @@ export default function Dashboard() {
     const [decryptedAudits, setDecryptedAudits] = useState<DecryptedAudit[]>([]);
     const [loadingAudits, setLoadingAudits] = useState(false);
     const [auditStats, setAuditStats] = useState<any>(null);
+    const [mongoAudits, setMongoAudits] = useState<any[]>([]);
+    const [mongoStats, setMongoStats] = useState<any>(null);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -69,6 +73,12 @@ export default function Dashboard() {
             loadBlockchainAudits();
         }
     }, [walletAddress, contractAddress]);
+
+    useEffect(() => {
+        if (userId) {
+            loadMongoAudits();
+        }
+    }, [userId]);
 
     const checkWalletConnection = async () => {
         try {
@@ -296,6 +306,80 @@ export default function Dashboard() {
         return weeks;
     };
 
+    const loadMongoAudits = async () => {
+        if (!userId) return;
+        try {
+            const [auditsData, statsData] = await Promise.all([
+                auditAPI.getUserAudits(userId, 100).catch(() => ({ audits: [] })),
+                auditAPI.getUserAuditStats(userId).catch(() => null),
+            ]);
+            setMongoAudits(auditsData.audits || []);
+            setMongoStats(statsData);
+
+            // Merge MongoDB data with blockchain data for stats
+            // Use setTimeout to ensure state is updated
+            setTimeout(() => {
+                if (auditsData.audits && auditsData.audits.length > 0) {
+                    mergeAuditData();
+                } else if (decryptedAudits.length > 0) {
+                    // If no MongoDB audits but have blockchain audits, use those
+                    calculateAuditStats(decryptedAudits);
+                } else if (statsData && statsData.total_audits > 0) {
+                    // Use MongoDB stats directly if available
+                    const mongoStatusDistribution = Object.entries(statsData.by_status || {}).map(([name, value]: [string, any]) => ({
+                        name: name.charAt(0).toUpperCase() + name.slice(1),
+                        value,
+                        color: STATUS_COLORS[name.toLowerCase()] || '#CCCCCC',
+                    }));
+
+                    const mongoCategoryData = Object.entries(statsData.by_category || {}).map(([category, data]: [string, any]) => ({
+                        category,
+                        amount: data.total_amount || 0,
+                        count: data.count || 0,
+                    })).sort((a, b) => b.amount - a.amount).slice(0, 10);
+
+                    setAuditStats({
+                        statusDistribution: mongoStatusDistribution,
+                        categoryData: mongoCategoryData,
+                        auditTrendData: auditStats?.auditTrendData || [],
+                        successRate: statsData.by_status?.pass ? Math.round((statsData.by_status.pass / statsData.total_audits) * 100) : 0,
+                        totalAudits: statsData.total_audits,
+                        totalAmount: statsData.total_amount,
+                    });
+                }
+            }, 100);
+        } catch (error: any) {
+            console.error('Failed to load MongoDB audits:', error);
+        }
+    };
+
+    const mergeAuditData = () => {
+        // Combine blockchain and MongoDB audits for comprehensive stats
+        const allAudits = [...decryptedAudits];
+
+        // Add MongoDB audits as DecryptedAudit format
+        const currentMongoAudits = mongoAudits.length > 0 ? mongoAudits : [];
+        currentMongoAudits.forEach((mongoAudit: any) => {
+            const auditReport = mongoAudit.audit_report || {};
+            allAudits.push({
+                auditRecord: {
+                    auditId: mongoAudit.audit_id,
+                    pinataLink: '',
+                    hash: '',
+                    storedBy: mongoAudit.user_id || '',
+                    timestamp: BigInt(Math.floor(new Date(mongoAudit.timestamp).getTime() / 1000)),
+                },
+                decryptedData: auditReport,
+                timestamp: new Date(mongoAudit.timestamp),
+            });
+        });
+
+        // Recalculate stats with merged data
+        if (allAudits.length > 0) {
+            calculateAuditStats(allAudits);
+        }
+    };
+
     const loadData = async () => {
         try {
             setLoading(true);
@@ -424,9 +508,11 @@ export default function Dashboard() {
                                 <Skeleton className="h-7 sm:h-8 w-16 sm:w-20" />
                             ) : (
                                 <>
-                                    <div className="text-xl sm:text-2xl font-bold tracking-tight">{auditStats?.totalAudits || decryptedAudits.length || 0}</div>
+                                    <div className="text-xl sm:text-2xl font-bold tracking-tight">
+                                        {(auditStats?.totalAudits || 0) + (mongoStats?.total_audits || 0) || decryptedAudits.length || mongoAudits.length || 0}
+                                    </div>
                                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-1 leading-tight">
-                                        {walletAddress ? 'Your audits on-chain' : 'Connect wallet'}
+                                        {userId ? 'Total audits' : 'Connect wallet'}
                                     </p>
                                 </>
                             )}
@@ -478,7 +564,7 @@ export default function Dashboard() {
                             ) : (
                                 <>
                                     <div className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">
-                                        ${auditStats?.totalAmount?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                                        ${((auditStats?.totalAmount || 0) + (mongoStats?.total_amount || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
                                     </div>
                                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-1">Audited invoices</p>
                                 </>

@@ -1,4 +1,13 @@
 {
-  "invite_codes": {},
-  "user_families": {}
+  "invite_codes": {
+    "ZIQOY6": "family_ebdbf81cc01c"
+  },
+  "user_families": {
+    "0x1aea8cf0dfe13ed3025910c88f7356935d76536c": [
+      "family_ebdbf81cc01c"
+    ],
+    "0x414a4139240aa2643165cd8d98bd995087cd07e0": [
+      "family_ebdbf81cc01c"
+    ]
+  }
 }

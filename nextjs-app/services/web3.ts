@@ -187,7 +187,12 @@ class Web3Service {
         if (!this.provider) {
             throw new Error('Provider not initialized');
         }
-        return await this.provider.waitForTransaction(tx.hash);
+        // Use tx.wait() which returns ContractTransactionReceipt
+        const receipt = await tx.wait();
+        if (!receipt) {
+            throw new Error('Transaction receipt not found');
+        }
+        return receipt;
     }
 
     /**

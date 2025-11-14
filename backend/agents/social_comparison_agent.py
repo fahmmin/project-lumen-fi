@@ -31,6 +31,11 @@ class SocialComparisonAgent:
             Percentile rankings and comparisons
         """
         try:
+            # Ensure user profile exists
+            from backend.utils.user_storage import get_user_storage
+            user_storage = get_user_storage()
+            user_storage.ensure_profile_exists(user_id)
+
             # Get all user spending data
             all_user_data = self._get_all_user_spending(period)
 
@@ -49,10 +54,17 @@ class SocialComparisonAgent:
                     break
 
             if not user_data:
+                # User exists but has no spending data yet
                 return {
-                    "error": "User not found",
                     "user_id": user_id,
-                    "period": period
+                    "period": period,
+                    "overall": {
+                        "total_spent": 0,
+                        "percentile": 0,
+                        "message": "No spending data available yet. Upload receipts to see comparisons."
+                    },
+                    "category_percentiles": {},
+                    "insights": ["Upload receipts to see how your spending compares to others"]
                 }
 
             # Calculate percentiles

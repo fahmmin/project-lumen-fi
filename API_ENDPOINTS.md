@@ -32,7 +32,7 @@ curl -X POST "http://localhost:8000/ingest/" \
   -F "file=@invoice.pdf" \
   -F "user_id=user_123"  # NEW: Optional user ID
 ```
-
+F
 **Response:**
 ```json
 {

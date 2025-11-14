@@ -1,0 +1,23 @@
+{
+  "family_id": "family_ebdbf81cc01c",
+  "name": "Mine",
+  "invite_code": "ZIQOY6",
+  "created_by": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+  "created_at": "2025-11-15T01:25:26.805789",
+  "members": [
+    {
+      "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+      "role": "admin",
+      "joined_at": "2025-11-15T01:25:26.805707",
+      "display_name": null
+    },
+    {
+      "user_id": "0x414a4139240aa2643165cd8d98bd995087cd07e0",
+      "role": "member",
+      "joined_at": "2025-11-15T01:28:06.284213",
+      "display_name": null
+    }
+  ],
+  "shared_budget": null,
+  "description": "Love"
+}

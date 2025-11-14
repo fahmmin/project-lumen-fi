@@ -45,10 +45,10 @@ async def create_goal(goal_data: GoalCreate):
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Error creating goal: {e}")
+        logger.error(f"Error creating goal: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create goal"
+            detail=f"Failed to create goal: {str(e)}"
         )
 
 

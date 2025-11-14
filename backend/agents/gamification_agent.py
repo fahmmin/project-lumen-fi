@@ -212,14 +212,27 @@ class GamificationAgent:
         if points == 0:
             return {"success": False, "message": "Unknown activity"}
 
+        # Check if daily login already awarded today
+        if activity == "daily_login":
+            now = datetime.now()
+            if user_points.last_activity:
+                last_date = user_points.last_activity.date()
+                today = now.date()
+                if last_date == today:
+                    # Already logged in today, don't award points again
+                    return {
+                        "success": False,
+                        "message": "Daily login already recorded today",
+                        "points_earned": 0,
+                        "total_points": user_points.total_points,
+                        "current_streak": user_points.current_streak
+                    }
+            self._update_streak(user_points)
+
         # Award points
         old_level = user_points.level
         user_points.total_points += points
         user_points.last_activity = datetime.now()
-
-        # Update streak for daily login
-        if activity == "daily_login":
-            self._update_streak(user_points)
 
         # Calculate new level
         new_level = self._calculate_level(user_points.total_points)

@@ -42,6 +42,68 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 
+# Auto-create user profile middleware
+@app.middleware("http")
+async def auto_create_user_profile(request: Request, call_next):
+    """Auto-create user profile if user_id is in path and profile doesn't exist"""
+    from backend.utils.user_storage import get_user_storage
+    import re
+    
+    # Extract user_id from path if present
+    path = request.url.path
+    
+    # Patterns that indicate user_id in path (e.g., /users/profile/{user_id}, /finance/dashboard/{user_id})
+    user_id_patterns = [
+        r'/users/profile/([^/]+)',
+        r'/users/([^/]+)/salary',
+        r'/finance/([^/]+)',
+        r'/goals/([^/]+)',
+        r'/subscriptions/([^/]+)',
+        r'/reminders/([^/]+)',
+        r'/patterns/([^/]+)',
+        r'/gamification/stats/([^/]+)',
+        r'/gamification/badges/([^/]+)',
+        r'/gamification/daily-login/([^/]+)',
+        r'/social/([^/]+)/percentile',
+        r'/social/insights/([^/]+)',
+        r'/family/user/([^/]+)',
+        r'/family/[^/]+/member/([^/]+)',
+        r'/reports/generate/([^/]+)',
+        r'/reports/([^/]+)/history',
+        r'/audit/user/([^/]+)',
+        r'/voice/upload-receipt',
+        r'/email/parse-receipt',
+    ]
+    
+    user_id = None
+    for pattern in user_id_patterns:
+        match = re.search(pattern, path)
+        if match:
+            user_id = match.group(1)
+            break
+    
+    # Also check query params for user_id
+    if not user_id:
+        user_id = request.query_params.get('user_id')
+    
+    # Note: We don't read request body here to avoid consuming it
+    # Most user_id values should be in path or query params
+    # If user_id is in body, the route handler will handle profile creation
+    
+    # Auto-create profile if user_id found and it looks like a wallet address
+    if user_id and (user_id.startswith('0x') or len(user_id) > 20):
+        try:
+            storage = get_user_storage()
+            # This will auto-create if doesn't exist and register in MongoDB
+            storage.ensure_profile_exists(user_id.lower())
+        except Exception as e:
+            # Silently fail - don't block the request
+            logger.debug(f"Auto-create profile middleware failed (non-critical): {e}")
+    
+    response = await call_next(request)
+    return response
+
+
 # Exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

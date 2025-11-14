@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { BottomNavigation } from "@/components/layout/BottomNavigation";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
+import { UserProvider } from "@/contexts/UserContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,10 +38,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header />
-          <main className="pb-20 md:pb-8">{children}</main>
-          <BottomNavigation />
-          <Toaster />
+          <UserProvider>
+            <Header />
+            <main className="pb-20 md:pb-8">{children}</main>
+            <BottomNavigation />
+            <Toaster />
+          </UserProvider>
         </ThemeProvider>
       </body>
     </html>

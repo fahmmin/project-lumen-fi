@@ -35,17 +35,14 @@ async def generate_report(
     - Download link for generated PDF/HTML report
     """
     try:
-        # Get user profile
+        # Get user profile (auto-create if doesn't exist)
         storage = get_user_storage()
-        profile = storage.get_profile(user_id)
-
-        if not profile:
-            raise HTTPException(status_code=404, detail="User not found")
+        profile = storage.ensure_profile_exists(user_id)
 
         # Get financial data
         agent = get_personal_finance_agent()
         dashboard = agent.analyze_dashboard(user_id, period)
-        insights = agent.get_insights(user_id)
+        insights = agent.get_insights(user_id, period)
 
         # Generate report
         filepath = await pdf_generator.generate_monthly_report(

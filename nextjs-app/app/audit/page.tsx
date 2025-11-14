@@ -14,6 +14,7 @@ import { InsightCard } from '@/components/financial/InsightCard';
 import { AmountDisplay } from '@/components/financial/AmountDisplay';
 import { auditAPI, type InvoiceData, type AuditResponse } from '@/services/api';
 import { useToast } from '@/components/ui/use-toast';
+import { useUser } from '@/contexts/UserContext';
 import { Loader2, CheckCircle2, AlertCircle, XCircle, ArrowRight, Database } from 'lucide-react';
 import Link from 'next/link';
 
@@ -21,6 +22,7 @@ type AuditType = 'full' | 'quick';
 type AuditStep = 'idle' | 'audit' | 'compliance' | 'fraud' | 'explainability' | 'complete';
 
 export default function AuditPage() {
+    const { userId } = useUser();
     const [formData, setFormData] = useState<InvoiceData>({
         vendor: '',
         date: new Date().toISOString().split('T')[0],
@@ -86,8 +88,8 @@ export default function AuditPage() {
             await simulateProgress();
 
             const result = auditType === 'full'
-                ? await auditAPI.executeAudit(formData)
-                : await auditAPI.quickAudit(formData);
+                ? await auditAPI.executeAudit(formData, userId || undefined)
+                : await auditAPI.quickAudit(formData, userId || undefined);
 
             setAuditResult(result as AuditResponse);
             toast({

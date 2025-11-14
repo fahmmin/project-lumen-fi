@@ -55,8 +55,26 @@ class UserStorage:
         if profile_path.exists():
             raise FileExistsError(f"Profile for user {user_id} already exists")
 
-        # Create profile
-        profile = UserProfile(**profile_data.dict())
+        # Create profile with defaults for optional fields
+        profile_dict = profile_data.dict()
+        # Provide defaults for optional fields if not provided
+        if profile_dict.get('name') is None:
+            # Use first 8 chars of user_id, removing 0x prefix if present
+            display_id = user_id.replace('0x', '')[:8] if user_id.startswith('0x') else user_id[:8]
+            profile_dict['name'] = f"User {display_id}"
+        if profile_dict.get('email') is None:
+            # Use a valid email format for EmailStr validation
+            # Sanitize user_id for email (remove 0x, take first 8 chars, lowercase, alphanumeric only)
+            email_id = user_id.replace('0x', '').lower()[:8]
+            email_id = ''.join(c for c in email_id if c.isalnum())
+            if not email_id:
+                email_id = 'user'
+            # Use a valid domain that EmailStr accepts (not .local)
+            profile_dict['email'] = f"{email_id}@example.com"
+        if profile_dict.get('salary_monthly') is None:
+            profile_dict['salary_monthly'] = 0.0
+        
+        profile = UserProfile(**profile_dict)
 
         # Save to file
         self._save_json(profile_path, profile.dict())
@@ -111,6 +129,34 @@ class UserStorage:
         self._save_json(self._get_profile_path(user_id), profile.dict())
 
         logger.info(f"Updated profile for user {user_id}")
+        return profile
+
+    def ensure_profile_exists(self, user_id: str) -> UserProfile:
+        """
+        Ensure user profile exists, create if it doesn't
+        Also registers user in MongoDB if connected
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            User profile (existing or newly created)
+        """
+        profile = self.get_profile(user_id)
+        if not profile:
+            logger.info(f"Auto-creating profile for user {user_id}")
+            from backend.models.user import UserProfileCreate
+            profile_data = UserProfileCreate(user_id=user_id)
+            profile = self.create_profile(profile_data)
+            
+            # Register user in MongoDB (silently, don't expose to frontend)
+            try:
+                from backend.utils.mongo_storage import get_mongo_storage
+                mongo_storage = get_mongo_storage()
+                mongo_storage.register_user(user_id, user_id)
+            except Exception as mongo_error:
+                # Silently fail - MongoDB is optional
+                logger.debug(f"MongoDB user registration failed (non-critical): {mongo_error}")
         return profile
 
     def delete_profile(self, user_id: str) -> Dict:
@@ -175,28 +221,55 @@ class UserStorage:
         """
         user_id = goal_data.user_id
 
-        # Verify user exists
+        # Auto-create user profile if it doesn't exist
         if not self.get_profile(user_id):
-            raise FileNotFoundError(f"User {user_id} not found")
+            from backend.models.user import UserProfileCreate
+            logger.info(f"Auto-creating profile for user {user_id}")
+            profile_data = UserProfileCreate(user_id=user_id)
+            self.create_profile(profile_data)
 
         # Generate goal ID
         import uuid
         goal_id = f"goal_{uuid.uuid4().hex[:12]}"
 
-        # Create goal
-        goal = FinancialGoal(goal_id=goal_id, **goal_data.dict())
+        try:
+            # Create goal dict with all required fields
+            goal_dict = goal_data.dict()
+            goal_dict['goal_id'] = goal_id
+            
+            # Ensure target_amount is not zero to avoid division by zero
+            if goal_dict.get('target_amount', 0) <= 0:
+                raise ValueError("target_amount must be greater than 0")
+            
+            # Create goal - Pydantic will handle type conversions
+            goal = FinancialGoal(**goal_dict)
 
-        # Calculate progress
-        goal.progress_percentage = (goal.current_savings / goal.target_amount) * 100
+            # Calculate progress (handle division by zero)
+            if goal.target_amount > 0:
+                goal.progress_percentage = (goal.current_savings / goal.target_amount) * 100
+            else:
+                goal.progress_percentage = 0.0
+        except Exception as e:
+            logger.error(f"Error creating FinancialGoal object: {e}", exc_info=True)
+            raise ValueError(f"Invalid goal data: {str(e)}")
 
         # Load existing goals
         goals = self._load_goals(user_id)
 
-        # Add new goal
-        goals.append(goal.dict())
+        # Add new goal - use dict() with proper serialization
+        try:
+            goal_dict = goal.dict()
+            goals.append(goal_dict)
+        except Exception as e:
+            logger.error(f"Error serializing goal to dict: {e}", exc_info=True)
+            raise ValueError(f"Failed to serialize goal: {str(e)}")
 
         # Save
-        self._save_json(self._get_goals_path(user_id), goals)
+        try:
+            self._save_json(self._get_goals_path(user_id), goals)
+        except Exception as e:
+            logger.error(f"Error saving goals to file: {e}", exc_info=True)
+            raise ValueError(f"Failed to save goal: {str(e)}")
 
         logger.info(f"Created goal {goal_id} for user {user_id}")
         return goal

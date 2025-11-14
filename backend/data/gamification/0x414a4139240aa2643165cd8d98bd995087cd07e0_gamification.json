@@ -1,0 +1,131 @@
+{
+  "user_id": "0x414a4139240aa2643165cd8d98bd995087cd07e0",
+  "total_points": 50,
+  "level": 1,
+  "badges_earned": [],
+  "current_streak": 0,
+  "longest_streak": 0,
+  "last_activity": "2025-11-15T01:28:55.461106",
+  "achievements": [
+    {
+      "badge_id": "streak_week",
+      "name": "Week Warrior",
+      "description": "Log in for 7 days in a row",
+      "type": "streak",
+      "level": "bronze",
+      "icon": "\ud83d\udd25",
+      "points": 50,
+      "requirement": "7_day_streak",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "streak_month",
+      "name": "Monthly Master",
+      "description": "Log in for 30 days in a row",
+      "type": "streak",
+      "level": "gold",
+      "icon": "\u26a1",
+      "points": 200,
+      "requirement": "30_day_streak",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "saver_bronze",
+      "name": "Penny Pincher",
+      "description": "Save $500",
+      "type": "savings",
+      "level": "bronze",
+      "icon": "\ud83d\udcb0",
+      "points": 50,
+      "requirement": "save_500",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "saver_silver",
+      "name": "Smart Saver",
+      "description": "Save $2,000",
+      "type": "savings",
+      "level": "silver",
+      "icon": "\ud83d\udc8e",
+      "points": 100,
+      "requirement": "save_2000",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "saver_gold",
+      "name": "Wealth Builder",
+      "description": "Save $10,000",
+      "type": "savings",
+      "level": "gold",
+      "icon": "\ud83c\udfc6",
+      "points": 300,
+      "requirement": "save_10000",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "budget_master",
+      "name": "Budget Master",
+      "description": "Stay under budget for 3 months",
+      "type": "budget",
+      "level": "silver",
+      "icon": "\ud83d\udcca",
+      "points": 150,
+      "requirement": "under_budget_3_months",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "goal_creator",
+      "name": "Goal Setter",
+      "description": "Create your first financial goal",
+      "type": "goal",
+      "level": "bronze",
+      "icon": "\ud83c\udfaf",
+      "points": 50,
+      "requirement": "create_1_goal",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "goal_achiever",
+      "name": "Goal Crusher",
+      "description": "Complete a financial goal",
+      "type": "goal",
+      "level": "gold",
+      "icon": "\u2728",
+      "points": 250,
+      "requirement": "complete_1_goal",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "receipt_100",
+      "name": "Receipt Collector",
+      "description": "Upload 100 receipts",
+      "type": "milestone",
+      "level": "silver",
+      "icon": "\ud83e\uddfe",
+      "points": 100,
+      "requirement": "upload_100_receipts",
+      "unlocked": false,
+      "unlocked_at": null
+    },
+    {
+      "badge_id": "analyzer",
+      "name": "Data Analyst",
+      "description": "Check your dashboard 50 times",
+      "type": "milestone",
+      "level": "bronze",
+      "icon": "\ud83d\udcc8",
+      "points": 75,
+      "requirement": "check_dashboard_50",
+      "unlocked": false,
+      "unlocked_at": null
+    }
+  ]
+}

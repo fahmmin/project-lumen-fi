@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # Common tax rates for validation (percentages as decimals)
     COMMON_TAX_RATES: list = [0.05, 0.07, 0.10, 0.15, 0.18, 0.20]
 
+    # Database settings
+    MONGO_URI: Optional[str] = None  # MongoDB connection string
+
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FILE: Path = BASE_DIR / "lumen.log"

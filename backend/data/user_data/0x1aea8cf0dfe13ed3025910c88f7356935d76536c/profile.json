@@ -1,0 +1,10 @@
+{
+  "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+  "name": "User 1aea8cf0",
+  "email": "1aea8cf0@example.com",
+  "salary_monthly": 0.0,
+  "currency": "USD",
+  "budget_categories": {},
+  "created_at": "2025-11-15 02:17:57.686585",
+  "updated_at": "2025-11-15 02:17:57.686628"
+}

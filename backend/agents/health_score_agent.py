@@ -32,9 +32,8 @@ class HealthScoreAgent:
         """
         logger.info(f"HealthScoreAgent: Calculating score for {user_id}")
 
-        profile = self.user_storage.get_profile(user_id)
-        if not profile:
-            raise ValueError(f"User {user_id} not found")
+        # Get user profile (auto-create if doesn't exist)
+        profile = self.user_storage.ensure_profile_exists(user_id)
 
         # Get dashboard data
         try:

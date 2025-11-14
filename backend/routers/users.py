@@ -60,26 +60,17 @@ async def create_user_profile(profile_data: UserProfileCreate):
 @router.get("/profile/{user_id}", response_model=UserProfile)
 async def get_user_profile(user_id: str):
     """
-    Get user profile
+    Get user profile (auto-creates if doesn't exist)
 
     Args:
         user_id: User ID
 
     Returns:
         User profile
-
-    Raises:
-        404: Profile not found
     """
     storage = get_user_storage()
-    profile = storage.get_profile(user_id)
-
-    if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Profile for user {user_id} not found"
-        )
-
+    # Auto-create profile if it doesn't exist
+    profile = storage.ensure_profile_exists(user_id)
     return profile
 
 
@@ -101,10 +92,13 @@ async def update_user_profile(user_id: str, update_data: UserProfileUpdate):
     """
     try:
         storage = get_user_storage()
+        # Ensure profile exists first
+        storage.ensure_profile_exists(user_id)
         profile = storage.update_profile(user_id, update_data)
         return profile
 
     except FileNotFoundError:
+        # Should not happen after ensure_profile_exists, but handle just in case
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Profile for user {user_id} not found"
@@ -120,7 +114,7 @@ async def update_user_profile(user_id: str, update_data: UserProfileUpdate):
 @router.post("/{user_id}/salary", response_model=dict)
 async def update_salary(user_id: str, salary_data: SalaryUpdate):
     """
-    Update user's monthly salary
+    Update user's monthly salary (auto-creates profile if doesn't exist)
 
     Args:
         user_id: User ID
@@ -128,12 +122,11 @@ async def update_salary(user_id: str, salary_data: SalaryUpdate):
 
     Returns:
         Success message
-
-    Raises:
-        404: Profile not found
     """
     try:
         storage = get_user_storage()
+        # Ensure profile exists first
+        storage.ensure_profile_exists(user_id)
         update_data = UserProfileUpdate(
             salary_monthly=salary_data.salary_monthly,
             currency=salary_data.currency
@@ -149,6 +142,7 @@ async def update_salary(user_id: str, salary_data: SalaryUpdate):
         }
 
     except FileNotFoundError:
+        # Should not happen after ensure_profile_exists, but handle just in case
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Profile for user {user_id} not found"

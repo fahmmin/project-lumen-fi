@@ -3,7 +3,7 @@ PROJECT LUMEN - Audit API Router
 Handles audit execution
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Dict, List, Optional
 
@@ -46,7 +46,7 @@ class AuditResponse(BaseModel):
 
 
 @router.post("/", response_model=AuditResponse)
-async def execute_audit(request: AuditRequest):
+async def execute_audit(request: AuditRequest, user_id: Optional[str] = Query(None)):
     """
     Execute comprehensive audit on invoice
 
@@ -56,9 +56,11 @@ async def execute_audit(request: AuditRequest):
     3. Run Fraud Agent (anomaly detection)
     4. Run Explainability Agent (generate summary)
     5. Log to workspace.md
+    6. Save to MongoDB (silently, no frontend indication)
 
     Args:
         request: Audit request with invoice data
+        user_id: Optional user ID for MongoDB storage
 
     Returns:
         Complete audit report
@@ -80,6 +82,21 @@ async def execute_audit(request: AuditRequest):
 
         logger.info(f"Audit completed: {audit_report['audit_id']} - Status: {audit_report['overall_status']}")
 
+        # Save to MongoDB (silently, don't expose to frontend)
+        try:
+            from backend.utils.mongo_storage import get_mongo_storage
+            mongo_storage = get_mongo_storage()
+            amount = invoice_dict.get('amount', 0.0)
+            mongo_storage.save_audit(
+                audit_id=audit_report['audit_id'],
+                audit_report=audit_report,
+                amount=amount,
+                user_id=user_id
+            )
+        except Exception as mongo_error:
+            # Silently fail - MongoDB is optional
+            logger.debug(f"MongoDB save failed (non-critical): {mongo_error}")
+
         return AuditResponse(**audit_report)
 
     except Exception as e:
@@ -91,18 +108,21 @@ async def execute_audit(request: AuditRequest):
 
 
 @router.post("/quick")
-async def quick_audit(invoice_data: InvoiceData):
+async def quick_audit(invoice_data: InvoiceData, user_id: Optional[str] = Query(None)):
     """
     Quick audit using only Audit Agent (no RAG, no LLM)
 
     Args:
         invoice_data: Invoice data
+        user_id: Optional user ID for MongoDB storage
 
     Returns:
         Quick audit results
     """
     try:
         from backend.agents.audit_agent import get_audit_agent
+        import uuid
+        from datetime import datetime
 
         logger.info("Quick audit requested")
 
@@ -111,9 +131,37 @@ async def quick_audit(invoice_data: InvoiceData):
 
         findings = audit_agent.audit(invoice_dict)
 
+        # Create a minimal audit report for MongoDB storage
+        audit_id = f"audit_{uuid.uuid4().hex[:8]}"
+        audit_report = {
+            "audit_id": audit_id,
+            "timestamp": datetime.now().isoformat(),
+            "invoice_data": invoice_dict,
+            "findings": {"audit": findings},
+            "explanation": "",
+            "context_chunks": [],
+            "overall_status": findings.get("status", "pass")
+        }
+
+        # Save to MongoDB (silently, don't expose to frontend)
+        try:
+            from backend.utils.mongo_storage import get_mongo_storage
+            mongo_storage = get_mongo_storage()
+            amount = invoice_dict.get('amount', 0.0)
+            mongo_storage.save_audit(
+                audit_id=audit_id,
+                audit_report=audit_report,
+                amount=amount,
+                user_id=user_id
+            )
+        except Exception as mongo_error:
+            # Silently fail - MongoDB is optional
+            logger.debug(f"MongoDB save failed (non-critical): {mongo_error}")
+
         return {
             "status": "success",
             "audit_type": "quick",
+            "audit_id": audit_id,
             "findings": findings,
             "message": "Quick audit completed (Audit Agent only)"
         }
@@ -168,9 +216,22 @@ async def get_audit_by_id(audit_id: str):
         Audit details
     """
     try:
+        # Try MongoDB first
+        from backend.utils.mongo_storage import get_mongo_storage
+        mongo_storage = get_mongo_storage()
+        if mongo_storage.is_connected():
+            audit_doc = mongo_storage.get_audit(audit_id)
+            if audit_doc:
+                return {
+                    "status": "found",
+                    "audit_id": audit_id,
+                    "audit_report": audit_doc.get("audit_report", {}),
+                    "amount": audit_doc.get("amount", 0),
+                    "timestamp": audit_doc.get("timestamp", "").isoformat() if hasattr(audit_doc.get("timestamp", ""), "isoformat") else str(audit_doc.get("timestamp", ""))
+                }
+        
+        # Fallback to workspace
         from backend.utils.workspace_writer import workspace
-
-        # Search workspace for audit
         audit_content = workspace.search_workspace(audit_id)
 
         if audit_content:
@@ -192,4 +253,77 @@ async def get_audit_by_id(audit_id: str):
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving audit: {str(e)}"
+        )
+
+
+@router.get("/user/{user_id}/audits")
+async def get_user_audits(user_id: str, limit: int = 100):
+    """
+    Get all audits for a user from MongoDB
+    
+    Args:
+        user_id: User ID
+        limit: Maximum number of audits to return
+        
+    Returns:
+        List of user audits
+    """
+    try:
+        from backend.utils.mongo_storage import get_mongo_storage
+        mongo_storage = get_mongo_storage()
+        
+        if not mongo_storage.is_connected():
+            return {
+                "status": "success",
+                "audits": [],
+                "count": 0,
+                "message": "MongoDB not connected"
+            }
+        
+        audits = mongo_storage.get_user_audits(user_id, limit)
+        
+        return {
+            "status": "success",
+            "audits": audits,
+            "count": len(audits)
+        }
+    except Exception as e:
+        logger.error(f"Error getting user audits: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving user audits: {str(e)}"
+        )
+
+
+@router.get("/user/{user_id}/stats")
+async def get_user_audit_stats(user_id: str):
+    """
+    Get audit statistics for a user
+    
+    Args:
+        user_id: User ID
+        
+    Returns:
+        Audit statistics
+    """
+    try:
+        from backend.utils.mongo_storage import get_mongo_storage
+        mongo_storage = get_mongo_storage()
+        
+        if not mongo_storage.is_connected():
+            return {
+                "total_audits": 0,
+                "total_amount": 0,
+                "by_status": {},
+                "by_category": {},
+                "recent_count": 0
+            }
+        
+        stats = mongo_storage.get_audit_stats(user_id)
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting user audit stats: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving audit stats: {str(e)}"
         )
