@@ -29,7 +29,7 @@ class APIOrchestrator:
         parameters: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Execute an API endpoint with given parameters
+        Execute REAL API endpoint with given parameters
 
         Args:
             endpoint: Endpoint schema
@@ -39,24 +39,33 @@ class APIOrchestrator:
             Dict with:
               - success: bool
               - status_code: int
-              - data: Response data
+              - data: REAL Response data from API
               - error: Error message if failed
         """
-        logger.info(f"Executing {endpoint.method} {endpoint.path}")
+        logger.info(f"🔵 CALLING REAL API: {endpoint.method} {endpoint.path}")
+        logger.info(f"Parameters: {parameters}")
 
         try:
             # Build request
             url, params, json_body, headers = self._build_request(endpoint, parameters)
 
-            # Make HTTP request
+            logger.info(f"Full URL: {url}")
+            logger.info(f"Query params: {params}")
+            logger.info(f"JSON body: {json_body}")
+
+            # Make REAL HTTP request
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 if endpoint.method == "GET":
+                    logger.info(f"Making GET request to {url}")
                     response = await client.get(url, params=params, headers=headers)
                 elif endpoint.method == "POST":
+                    logger.info(f"Making POST request to {url}")
                     response = await client.post(url, params=params, json=json_body, headers=headers)
                 elif endpoint.method == "PUT":
+                    logger.info(f"Making PUT request to {url}")
                     response = await client.put(url, params=params, json=json_body, headers=headers)
                 elif endpoint.method == "DELETE":
+                    logger.info(f"Making DELETE request to {url}")
                     response = await client.delete(url, params=params, headers=headers)
                 else:
                     return {
@@ -64,8 +73,14 @@ class APIOrchestrator:
                         "error": f"Unsupported HTTP method: {endpoint.method}"
                     }
 
-            # Parse response
-            return self._parse_response(response)
+            logger.info(f"API Response Status: {response.status_code}")
+            logger.info(f"API Response Text: {response.text[:500]}")  # First 500 chars
+
+            # Parse REAL response
+            result = self._parse_response(response)
+            logger.info(f"Parsed result success: {result.get('success')}")
+
+            return result
 
         except httpx.TimeoutException:
             logger.error(f"Request timeout for {endpoint.path}")
@@ -80,7 +95,7 @@ class APIOrchestrator:
                 "error": f"Failed to connect to the service: {str(e)}"
             }
         except Exception as e:
-            logger.error(f"Error executing endpoint {endpoint.path}: {e}")
+            logger.error(f"Error executing endpoint {endpoint.path}: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": f"An unexpected error occurred: {str(e)}"
