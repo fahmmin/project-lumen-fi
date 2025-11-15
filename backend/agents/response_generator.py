@@ -24,7 +24,8 @@ class ResponseGenerator:
         self,
         endpoint: EndpointSchema,
         api_result: Dict[str, Any],
-        user_message: str
+        user_message: str,
+        show_api_details: bool = True
     ) -> Dict[str, Any]:
         """
         Generate natural language response from REAL API result
@@ -33,6 +34,7 @@ class ResponseGenerator:
             endpoint: Endpoint that was called
             api_result: REAL result from API call
             user_message: Original user message
+            show_api_details: Whether to show which API was called
 
         Returns:
             Dict with: response (str), suggestions (list)
@@ -48,8 +50,23 @@ class ResponseGenerator:
         # Get REAL data from API
         data = api_result.get("data", {})
 
+        # Build response with API details
+        response_parts = []
+
+        # Show which API was called
+        if show_api_details:
+            api_info = f"🔵 Called API: {endpoint.method} {endpoint.path}"
+            response_parts.append(api_info)
+
         # Convert REAL API data to readable format
-        response = self._format_real_data(data, endpoint)
+        data_response = self._format_real_data(data, endpoint)
+        response_parts.append(data_response)
+
+        # Add completion message
+        if show_api_details:
+            response_parts.append("\n✅ Process completed successfully!")
+
+        response = "\n".join(response_parts)
 
         # Generate suggestions based on endpoint category
         suggestions = self._get_suggestions(endpoint.category)
