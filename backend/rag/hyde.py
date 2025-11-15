@@ -12,6 +12,7 @@ except ImportError:
     HAS_GEMINI = False
 from backend.config import settings, HYDE_PROMPT
 from backend.utils.logger import logger, log_error
+from backend.utils.ollama_client import generate_completion
 
 
 class QueryEnhancer:
@@ -32,6 +33,9 @@ class QueryEnhancer:
             openai.api_key = settings.OPENAI_API_KEY
         elif settings.LLM_PROVIDER == "gemini" and settings.GEMINI_API_KEY and HAS_GEMINI:
             genai.configure(api_key=settings.GEMINI_API_KEY)
+        elif settings.LLM_PROVIDER == "ollama":
+            # Ollama doesn't require API key, uses ollama_client
+            pass
 
     def enhance_query(self, query: str) -> str:
         """
@@ -57,8 +61,10 @@ class QueryEnhancer:
             if not settings.GEMINI_API_KEY:
                 raise ValueError("Query enhancement with Gemini requires GEMINI_API_KEY to be configured")
             return self._enhance_with_gemini(prompt, query)
+        elif settings.LLM_PROVIDER == "ollama":
+            return self._enhance_with_ollama(prompt, query)
         else:
-            raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}. Use 'openai' or 'gemini'")
+            raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}. Use 'openai', 'gemini', or 'ollama'")
 
     def _enhance_with_openai(self, prompt: str, original_query: str) -> str:
         """Enhance query using OpenAI API"""
@@ -120,6 +126,24 @@ class QueryEnhancer:
             logger.info(f"Enhanced query with Gemini: {original_query} -> {combined_query}")
             return combined_query
 
+        except Exception as e:
+            logger.warning(f"Query enhancement failed, using original: {e}")
+            return original_query
+
+    def _enhance_with_ollama(self, prompt: str, original_query: str) -> str:
+        """Enhance query using Ollama API"""
+        try:
+            enhanced = generate_completion(
+                prompt=prompt,
+                system_message="You are a search query expert. Return only the expanded query keywords.",
+                temperature=self.temperature,
+                max_tokens=self.max_tokens
+            )
+
+            enhanced = enhanced.strip()
+            combined_query = f"{original_query} {enhanced}"
+            logger.info(f"Enhanced query with Ollama: {original_query} -> {combined_query}")
+            return combined_query
         except Exception as e:
             logger.warning(f"Query enhancement failed, using original: {e}")
             return original_query

@@ -14,6 +14,7 @@ except ImportError:
 from backend.rag.retriever import get_hybrid_retriever
 from backend.config import settings, COMPLIANCE_PROMPT
 from backend.utils.logger import logger, log_agent_action, log_error
+from backend.utils.ollama_client import generate_completion
 
 
 class ComplianceAgent:
@@ -27,6 +28,9 @@ class ComplianceAgent:
             openai.api_key = settings.OPENAI_API_KEY
         elif settings.LLM_PROVIDER == "gemini" and settings.GEMINI_API_KEY and HAS_GEMINI:
             genai.configure(api_key=settings.GEMINI_API_KEY)
+        elif settings.LLM_PROVIDER == "ollama":
+            # Ollama doesn't require API key, uses ollama_client
+            pass
 
     def check_compliance(self, invoice_data: Dict) -> Dict:
         """
@@ -118,8 +122,10 @@ class ComplianceAgent:
             if not settings.GEMINI_API_KEY:
                 raise ValueError("Compliance analysis with Gemini requires GEMINI_API_KEY to be configured")
             return self._analyze_with_gemini(invoice_data, policy_chunks)
+        elif settings.LLM_PROVIDER == "ollama":
+            return self._analyze_with_ollama(invoice_data, policy_chunks)
         else:
-            raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}. Use 'openai' or 'gemini'")
+            raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}. Use 'openai', 'gemini', or 'ollama'")
 
     def _analyze_with_openai(self, invoice_data: Dict, policy_chunks: List[Dict]) -> Dict:
         """
@@ -232,6 +238,47 @@ class ComplianceAgent:
         # Add context information
         result['context_used'] = [chunk.get('id', i) for i, chunk in enumerate(policy_chunks)]
         logger.info("Compliance analysis completed with Gemini LLM")
+        return result
+
+    def _analyze_with_ollama(self, invoice_data: Dict, policy_chunks: List[Dict]) -> Dict:
+        """
+        Analyze compliance using Ollama LLM
+
+        Args:
+            invoice_data: Invoice data
+            policy_chunks: Policy chunks
+
+        Returns:
+            Compliance findings
+        """
+        # Format context
+        context = "\n\n".join([f"Policy {i+1}: {chunk['text']}" for i, chunk in enumerate(policy_chunks)])
+
+        # Format prompt
+        prompt = COMPLIANCE_PROMPT.format(
+            invoice_data=json.dumps(invoice_data, indent=2),
+            context=context
+        )
+
+        # Call Ollama
+        result_text = generate_completion(
+            prompt=prompt,
+            system_message="You are a financial compliance auditor. Analyze invoices against policies and return structured JSON.",
+            temperature=0.1,
+            max_tokens=500
+        )
+
+        result_text = result_text.strip()
+
+        # Extract JSON
+        result = self._extract_json(result_text)
+
+        if not result:
+            raise RuntimeError("Ollama did not return valid JSON for compliance analysis")
+
+        # Add context information
+        result['context_used'] = [chunk.get('id', i) for i, chunk in enumerate(policy_chunks)]
+        logger.info("Compliance analysis completed with Ollama LLM")
         return result
 
     def _extract_json(self, text: str) -> Dict:

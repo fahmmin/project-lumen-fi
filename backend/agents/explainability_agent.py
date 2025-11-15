@@ -12,6 +12,7 @@ except ImportError:
     HAS_GEMINI = False
 from backend.config import settings, EXPLANATION_PROMPT
 from backend.utils.logger import logger, log_agent_action, log_error
+from backend.utils.ollama_client import generate_completion
 
 
 class ExplainabilityAgent:
@@ -23,6 +24,9 @@ class ExplainabilityAgent:
             openai.api_key = settings.OPENAI_API_KEY
         elif settings.LLM_PROVIDER == "gemini" and settings.GEMINI_API_KEY and HAS_GEMINI:
             genai.configure(api_key=settings.GEMINI_API_KEY)
+        elif settings.LLM_PROVIDER == "ollama":
+            # Ollama doesn't require API key, uses ollama_client
+            pass
 
     def explain(self, findings: Dict, context_chunks: List[Dict]) -> str:
         """
@@ -48,8 +52,10 @@ class ExplainabilityAgent:
             if not settings.GEMINI_API_KEY:
                 raise ValueError("Explainability with Gemini requires GEMINI_API_KEY to be configured")
             explanation = self._explain_with_gemini(findings, context_chunks)
+        elif settings.LLM_PROVIDER == "ollama":
+            explanation = self._explain_with_ollama(findings, context_chunks)
         else:
-            raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}. Use 'openai' or 'gemini'")
+            raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}. Use 'openai', 'gemini', or 'ollama'")
 
         log_agent_action("ExplainabilityAgent", "explain", {"length": len(explanation)})
         return explanation
@@ -163,6 +169,48 @@ class ExplainabilityAgent:
             raise RuntimeError("Gemini returned empty explanation")
 
         logger.info("Generated explanation with Gemini LLM")
+        return explanation
+
+    def _explain_with_ollama(self, findings: Dict, context_chunks: List[Dict]) -> str:
+        """
+        Generate explanation using Ollama LLM
+
+        Args:
+            findings: Audit findings
+            context_chunks: Context chunks
+
+        Returns:
+            Explanation text
+        """
+        # Format findings
+        import json
+        findings_text = json.dumps(findings, indent=2)
+
+        # Format context
+        context_text = "\n\n".join([
+            f"Context {i+1}: {chunk['text'][:200]}..."
+            for i, chunk in enumerate(context_chunks[:3])
+        ])
+
+        # Generate explanation
+        prompt = EXPLANATION_PROMPT.format(
+            findings=findings_text,
+            context=context_text
+        )
+
+        explanation = generate_completion(
+            prompt=prompt,
+            system_message="You are an AI financial analyst providing clear, professional audit explanations.",
+            temperature=0.3,
+            max_tokens=800
+        )
+
+        explanation = explanation.strip()
+
+        if not explanation:
+            raise RuntimeError("Ollama returned empty explanation")
+
+        logger.info("Generated explanation with Ollama LLM")
         return explanation
 
 
