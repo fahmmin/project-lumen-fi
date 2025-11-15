@@ -36,11 +36,17 @@ class ResponseGenerator:
         Returns:
             Dict with: response (str), suggestions (list)
         """
+        # Log the API result for debugging
+        logger.info(f"Generating response for {endpoint.path}")
+        logger.debug(f"API result: {api_result}")
+
         if not api_result.get("success", False):
             return self._generate_error_response(api_result, endpoint)
 
         # Generate success response based on endpoint category
         category = endpoint.category
+
+        logger.info(f"Response category: {category}")
 
         if category == "receipt_upload":
             return self._generate_receipt_response(api_result, endpoint)
@@ -97,11 +103,17 @@ class ResponseGenerator:
         """Generate response for receipt upload"""
         data = api_result.get("data", {})
 
+        logger.debug(f"Receipt response data: {data}")
+
         if endpoint.method == "POST":
-            # Receipt uploaded
-            extracted = data.get("extracted_fields", {})
-            vendor = extracted.get("vendor", "unknown")
+            # Receipt uploaded - try multiple possible data structures
+            extracted = data.get("extracted_fields", data)
+            vendor = extracted.get("vendor", "the vendor")
             amount = extracted.get("amount", 0)
+
+            # If amount is 0, check for alternative field names
+            if amount == 0:
+                amount = extracted.get("total", extracted.get("total_amount", 0))
 
             response = f"✅ Great! I've added your ${amount:.2f} receipt from {vendor} to your expenses!"
 
@@ -217,8 +229,11 @@ class ResponseGenerator:
         """Generate response for spending analysis"""
         data = api_result.get("data", {})
 
+        logger.debug(f"Spending response data: {data}")
+
         if "dashboard" in endpoint.path:
-            total_spent = data.get("total_spent", 0)
+            # Handle dashboard data - try multiple field names
+            total_spent = data.get("total_spent", data.get("total_spending", data.get("total", 0)))
             budget_status = data.get("budget_status", {})
 
             response = f"📊 This period you've spent ${total_spent:,.2f}."
@@ -227,6 +242,13 @@ class ResponseGenerator:
                 budget_pct = budget_status.get("percentage_used", 0)
                 response += f" You're at {budget_pct:.1f}% of your budget."
 
+            # Add spending breakdown if available
+            spending_by_category = data.get("spending_by_category", {})
+            if spending_by_category and isinstance(spending_by_category, dict):
+                top_category = max(spending_by_category.items(), key=lambda x: x[1], default=None)
+                if top_category:
+                    response += f" Your top category is {top_category[0]} at ${top_category[1]:,.2f}."
+
             suggestions = [
                 "See spending breakdown by category",
                 "Get budget recommendations",
@@ -234,7 +256,7 @@ class ResponseGenerator:
             ]
 
         elif "health-score" in endpoint.path:
-            score = data.get("score", 0)
+            score = data.get("score", data.get("health_score", 0))
 
             if score >= 80:
                 emoji = "🌟"
@@ -258,7 +280,19 @@ class ResponseGenerator:
             ]
 
         else:
+            # Generic spending response
             response = "✅ Here's your financial analysis!"
+
+            # Try to add some details
+            if data:
+                details = []
+                if "total" in data:
+                    details.append(f"Total: ${data['total']:,.2f}")
+                if "count" in data:
+                    details.append(f"Transactions: {data['count']}")
+                if details:
+                    response += " " + ", ".join(details)
+
             suggestions = []
 
         return {
@@ -459,9 +493,54 @@ class ResponseGenerator:
         api_result: Dict[str, Any],
         endpoint: EndpointSchema
     ) -> Dict[str, Any]:
-        """Generate generic success response"""
+        """Generate generic success response with data extraction"""
+        data = api_result.get("data", {})
+
+        # Try to extract useful information from the response
+        response_parts = ["✅ Success!"]
+
+        # If data is a dict, try to extract key fields
+        if isinstance(data, dict):
+            # Look for common fields
+            if "message" in data:
+                response_parts.append(data["message"])
+            elif "success" in data and data.get("success"):
+                if "detail" in data:
+                    response_parts.append(data["detail"])
+
+            # Extract key-value pairs that look important
+            key_fields = []
+            for key, value in data.items():
+                if key in ["total", "count", "amount", "balance", "score", "level", "points", "percentile"]:
+                    key_fields.append(f"{key.title()}: {value}")
+
+            if key_fields:
+                response_parts.append("\n" + "\n".join(key_fields))
+
+            # Show summary for lists
+            if isinstance(data, list):
+                response_parts.append(f"Retrieved {len(data)} item(s)")
+            elif any(isinstance(v, list) for v in data.values()):
+                for key, value in data.items():
+                    if isinstance(value, list):
+                        response_parts.append(f"{len(value)} {key}")
+
+        # If data is a list, show count
+        elif isinstance(data, list):
+            response_parts.append(f"Retrieved {len(data)} item(s)")
+
+        # If data is a simple value, show it
+        elif data:
+            response_parts.append(f"Result: {data}")
+
+        # Build final response
+        response = " ".join(response_parts)
+
+        # Log what we're returning
+        logger.info(f"Generic response generated: {response[:100]}...")
+
         return {
-            "response": "✅ Done! Your request was completed successfully.",
+            "response": response,
             "suggestions": [
                 "Ask me 'what can you do?' to see my capabilities",
                 "Say 'help' for assistance"
