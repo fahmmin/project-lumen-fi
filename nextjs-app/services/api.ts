@@ -651,6 +651,67 @@ export const financeAPI = {
             throw error;
         }
     },
+
+    // Analytics endpoints
+    async getCategoryDeepDive(userId: string, category: string, months: number = 3): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/finance/analytics/${userId}/category/${category}`, {
+                params: { months },
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get category analysis'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getMonthlyAnalysis(userId: string, year: number, month: number): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/finance/analytics/${userId}/monthly/${year}/${month}`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get monthly analysis'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getSavingsOpportunities(userId: string): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/finance/analytics/${userId}/savings-opportunities`);
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get savings opportunities'
+                );
+            }
+            throw error;
+        }
+    },
+
+    async getSpendingTrends(userId: string, months: number = 6): Promise<any> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/finance/analytics/${userId}/trends`, {
+                params: { months },
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get spending trends'
+                );
+            }
+            throw error;
+        }
+    },
 };
 
 // Goals & Planning

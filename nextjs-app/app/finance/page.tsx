@@ -36,9 +36,13 @@ export default function FinancePage() {
     const [predictions, setPredictions] = useState<any>(null);
     const [insights, setInsights] = useState<any>(null);
     const [budgetRecs, setBudgetRecs] = useState<any>(null);
+    const [analytics, setAnalytics] = useState<any>(null);
+    const [savingsOpportunities, setSavingsOpportunities] = useState<any>(null);
+    const [trends, setTrends] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('dashboard');
     const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
     const { toast } = useToast();
 
     useEffect(() => {
@@ -145,6 +149,58 @@ export default function FinancePage() {
         }
     };
 
+    const loadMonthlyAnalytics = async () => {
+        if (!userId) return;
+        try {
+            setLoading(true);
+            const now = new Date();
+            const data = await financeAPI.getMonthlyAnalysis(userId, now.getFullYear(), now.getMonth() + 1);
+            setAnalytics(data);
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.message || 'Failed to load monthly analytics',
+                variant: 'destructive',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadSavingsOpportunities = async () => {
+        if (!userId) return;
+        try {
+            setLoading(true);
+            const data = await financeAPI.getSavingsOpportunities(userId);
+            setSavingsOpportunities(data);
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.message || 'Failed to load savings opportunities',
+                variant: 'destructive',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadTrends = async () => {
+        if (!userId) return;
+        try {
+            setLoading(true);
+            const data = await financeAPI.getSpendingTrends(userId, 6);
+            setTrends(data);
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.message || 'Failed to load spending trends',
+                variant: 'destructive',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleTabChange = (value: string) => {
         setActiveTab(value);
         if (value === 'spending' && !spending) {
@@ -158,6 +214,11 @@ export default function FinancePage() {
         }
         if (value === 'budget' && !budgetRecs) {
             loadBudgetRecs();
+        }
+        if (value === 'analytics') {
+            if (!analytics) loadMonthlyAnalytics();
+            if (!savingsOpportunities) loadSavingsOpportunities();
+            if (!trends) loadTrends();
         }
     };
 
@@ -242,6 +303,7 @@ export default function FinancePage() {
                             <TabsList>
                                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                                 <TabsTrigger value="spending">Spending</TabsTrigger>
+                                <TabsTrigger value="analytics">Analytics</TabsTrigger>
                                 <TabsTrigger value="predictions">Predictions</TabsTrigger>
                                 <TabsTrigger value="insights">Insights</TabsTrigger>
                                 <TabsTrigger value="budget">Budget</TabsTrigger>
@@ -429,6 +491,287 @@ export default function FinancePage() {
                                     <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-8">
                                         No spending data available
                                     </p>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="analytics" className="space-y-6">
+                                {loading ? (
+                                    <Skeleton className="h-64" />
+                                ) : (
+                                    <>
+                                        {/* Monthly Analytics Section */}
+                                        {analytics && (
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle>This Month's Analysis</CardTitle>
+                                                    <CardDescription>{analytics.month}</CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    {/* Summary Stats */}
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                        <div className="p-3 border rounded-lg">
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400">Total Spent</p>
+                                                            <p className="text-xl font-bold">${analytics.summary?.total_spent?.toFixed(2)}</p>
+                                                        </div>
+                                                        <div className="p-3 border rounded-lg">
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400">Transactions</p>
+                                                            <p className="text-xl font-bold">{analytics.summary?.total_transactions}</p>
+                                                        </div>
+                                                        <div className="p-3 border rounded-lg">
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400">Savings</p>
+                                                            <p className="text-xl font-bold text-green-600">${analytics.summary?.savings?.toFixed(2)}</p>
+                                                        </div>
+                                                        <div className="p-3 border rounded-lg">
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400">vs Last Month</p>
+                                                            <p className={`text-xl font-bold ${analytics.vs_previous_month?.trend === 'increasing' ? 'text-red-600' : 'text-green-600'}`}>
+                                                                {analytics.vs_previous_month?.percent_change > 0 ? '+' : ''}{analytics.vs_previous_month?.percent_change?.toFixed(1)}%
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Weekly Breakdown */}
+                                                    {analytics.weekly_breakdown && analytics.weekly_breakdown.length > 0 && (
+                                                        <div>
+                                                            <h3 className="font-semibold mb-3">Weekly Breakdown</h3>
+                                                            <div className="space-y-2">
+                                                                {analytics.weekly_breakdown.map((week: any, idx: number) => (
+                                                                    <div key={idx} className="flex items-center justify-between p-3 border rounded">
+                                                                        <div>
+                                                                            <p className="font-medium">{week.week}</p>
+                                                                            <p className="text-sm text-gray-600">{week.count} transactions</p>
+                                                                        </div>
+                                                                        <p className="font-bold">${week.total?.toFixed(2)}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Top Expenses */}
+                                                    {analytics.top_expenses && analytics.top_expenses.length > 0 && (
+                                                        <div>
+                                                            <h3 className="font-semibold mb-3">Top Expenses</h3>
+                                                            <div className="space-y-2">
+                                                                {analytics.top_expenses.slice(0, 5).map((expense: any, idx: number) => (
+                                                                    <div key={idx} className="flex items-center justify-between p-3 border rounded">
+                                                                        <div>
+                                                                            <p className="font-medium">{expense.vendor}</p>
+                                                                            <p className="text-sm text-gray-600">{expense.category} • {expense.date}</p>
+                                                                        </div>
+                                                                        <p className="font-bold text-red-600">${expense.amount?.toFixed(2)}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Insights */}
+                                                    {analytics.insights && analytics.insights.length > 0 && (
+                                                        <div>
+                                                            <h3 className="font-semibold mb-3">AI Insights</h3>
+                                                            <div className="space-y-2">
+                                                                {analytics.insights.map((insight: string, idx: number) => (
+                                                                    <div key={idx} className="flex items-start gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                                                                        <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                                                                        <p className="text-sm">{insight}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Recommendations */}
+                                                    {analytics.recommendations && analytics.recommendations.length > 0 && (
+                                                        <div>
+                                                            <h3 className="font-semibold mb-3">Recommendations</h3>
+                                                            <div className="space-y-2">
+                                                                {analytics.recommendations.map((rec: string, idx: number) => (
+                                                                    <div key={idx} className="flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded">
+                                                                        <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                                                                        <p className="text-sm">{rec}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        )}
+
+                                        {/* Savings Opportunities Section */}
+                                        {savingsOpportunities && (
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle>Savings Opportunities</CardTitle>
+                                                    <CardDescription>
+                                                        Potential to save ${savingsOpportunities.total_savings_potential?.toFixed(2)}/month
+                                                        (${savingsOpportunities.annual_savings_potential?.toFixed(2)}/year)
+                                                    </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    {/* Goal Impact */}
+                                                    {savingsOpportunities.goal_impact?.goals_impacted > 0 && (
+                                                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                                            <h3 className="font-semibold mb-2">Impact on Your Goals</h3>
+                                                            <div className="space-y-2">
+                                                                {savingsOpportunities.goal_impact.impact.map((goal: any, idx: number) => (
+                                                                    <p key={idx} className="text-sm">
+                                                                        <strong>{goal.goal_name}:</strong> Reach {goal.time_saved_months?.toFixed(1)} months earlier ({goal.accelerated_by})
+                                                                    </p>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Strategy */}
+                                                    {savingsOpportunities.strategy && savingsOpportunities.strategy.length > 0 && (
+                                                        <div>
+                                                            <h3 className="font-semibold mb-3">Savings Strategy</h3>
+                                                            <div className="space-y-2">
+                                                                {savingsOpportunities.strategy.map((strategy: string, idx: number) => (
+                                                                    <div key={idx} className="flex items-start gap-2 p-3 border rounded">
+                                                                        <Target className="h-4 w-4 text-green-600 mt-0.5" />
+                                                                        <p className="text-sm">{strategy}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Priority Actions */}
+                                                    {savingsOpportunities.priority_actions && savingsOpportunities.priority_actions.length > 0 && (
+                                                        <div>
+                                                            <h3 className="font-semibold mb-3">Priority Actions</h3>
+                                                            <div className="space-y-2">
+                                                                {savingsOpportunities.priority_actions.map((action: string, idx: number) => (
+                                                                    <div key={idx} className="flex items-start gap-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                                                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-yellow-500 text-white text-xs font-bold">{idx + 1}</span>
+                                                                        <p className="text-sm flex-1">{action}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Category Opportunities */}
+                                                    {savingsOpportunities.opportunities_by_category && Object.keys(savingsOpportunities.opportunities_by_category).length > 0 && (
+                                                        <div>
+                                                            <h3 className="font-semibold mb-3">By Category</h3>
+                                                            <div className="space-y-3">
+                                                                {Object.entries(savingsOpportunities.opportunities_by_category).map(([category, opp]: [string, any]) => (
+                                                                    <div key={category} className="p-4 border rounded-lg">
+                                                                        <div className="flex items-center justify-between mb-2">
+                                                                            <h4 className="font-medium capitalize">{category}</h4>
+                                                                            <Badge variant="secondary">Save ${opp.savings_potential?.toFixed(2)}/mo</Badge>
+                                                                        </div>
+                                                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                                                            Current: ${opp.current_monthly?.toFixed(2)}/mo • Budget: ${opp.budget?.toFixed(2)}/mo
+                                                                        </p>
+                                                                        {opp.strategies && opp.strategies.length > 0 && (
+                                                                            <ul className="text-sm space-y-1">
+                                                                                {opp.strategies.map((strategy: string, idx: number) => (
+                                                                                    <li key={idx} className="text-gray-700 dark:text-gray-300">• {strategy}</li>
+                                                                                ))}
+                                                                            </ul>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        )}
+
+                                        {/* Trends Section */}
+                                        {trends && trends.monthly_totals && (
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle>Spending Trends ({trends.months_analyzed} months)</CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    {/* Month-by-Month */}
+                                                    <div>
+                                                        <h3 className="font-semibold mb-3">Monthly Totals</h3>
+                                                        <ResponsiveContainer width="100%" height={250}>
+                                                            <LineChart data={Object.entries(trends.monthly_totals).map(([month, data]: [string, any]) => ({
+                                                                month,
+                                                                total: data.total
+                                                            }))}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis dataKey="month" />
+                                                                <YAxis />
+                                                                <Tooltip />
+                                                                <Legend />
+                                                                <Line type="monotone" dataKey="total" stroke="#000000" name="Total Spent" />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+
+                                                    {/* Volatility */}
+                                                    {trends.volatility && (
+                                                        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                                                            <h3 className="font-semibold mb-2">Spending Consistency</h3>
+                                                            <p className="text-sm mb-1">
+                                                                <strong>Level:</strong> {trends.volatility.volatility_level?.replace('_', ' ')}
+                                                            </p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                                {trends.volatility.description}
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Growth Analysis */}
+                                                    {trends.growth_analysis && (
+                                                        <div className="p-4 border rounded-lg">
+                                                            <h3 className="font-semibold mb-2">Trend Analysis</h3>
+                                                            <p className="text-sm mb-2">
+                                                                Overall trend: <Badge variant={trends.growth_analysis.overall_trend === 'increasing' ? 'destructive' : 'default'}>
+                                                                    {trends.growth_analysis.overall_trend}
+                                                                </Badge>
+                                                            </p>
+                                                            <p className="text-sm">
+                                                                Total change: {trends.growth_analysis.percent_change > 0 ? '+' : ''}{trends.growth_analysis.percent_change?.toFixed(1)}%
+                                                            </p>
+                                                            {trends.growth_analysis.fastest_growing_categories && trends.growth_analysis.fastest_growing_categories.length > 0 && (
+                                                                <div className="mt-3">
+                                                                    <p className="text-sm font-medium mb-1">Fastest growing categories:</p>
+                                                                    <ul className="text-sm text-gray-600 dark:text-gray-400">
+                                                                        {trends.growth_analysis.fastest_growing_categories.map((cat: any, idx: number) => (
+                                                                            <li key={idx}>• {cat.category}: +${cat.change?.toFixed(2)}</li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Seasonal Patterns */}
+                                                    {trends.seasonal_patterns?.seasonal && (
+                                                        <div className="p-4 border rounded-lg">
+                                                            <h3 className="font-semibold mb-2">Seasonal Patterns Detected</h3>
+                                                            {trends.seasonal_patterns.high_spending_months && Object.keys(trends.seasonal_patterns.high_spending_months).length > 0 && (
+                                                                <div className="mb-2">
+                                                                    <p className="text-sm font-medium">High spending months:</p>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                                        {Object.entries(trends.seasonal_patterns.high_spending_months).map(([month, amt]: [string, any]) => `${month} ($${amt.toFixed(2)})`).join(', ')}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                            {trends.seasonal_patterns.low_spending_months && Object.keys(trends.seasonal_patterns.low_spending_months).length > 0 && (
+                                                                <div>
+                                                                    <p className="text-sm font-medium">Low spending months:</p>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                                        {Object.entries(trends.seasonal_patterns.low_spending_months).map(([month, amt]: [string, any]) => `${month} ($${amt.toFixed(2)})`).join(', ')}
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        )}
+                                    </>
                                 )}
                             </TabsContent>
 
