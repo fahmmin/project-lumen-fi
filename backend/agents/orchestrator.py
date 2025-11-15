@@ -5,7 +5,7 @@ Coordinates all agents for comprehensive audit
 
 import uuid
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 from backend.agents.audit_agent import get_audit_agent
 from backend.agents.compliance_agent import get_compliance_agent
 from backend.agents.fraud_agent import get_fraud_agent
@@ -23,7 +23,7 @@ class AuditOrchestrator:
         self.fraud_agent = get_fraud_agent()
         self.explainability_agent = get_explainability_agent()
 
-    def run_audit(self, invoice_data: Dict) -> Dict:
+    def run_audit(self, invoice_data: Dict, user_id: Optional[str] = None) -> Dict:
         """
         Run complete audit using all agents
 
@@ -33,9 +33,11 @@ class AuditOrchestrator:
         3. Fraud Agent - Detect anomalies
         4. Explainability Agent - Generate human-readable summary
         5. Log to workspace.md
+        6. Save to MongoDB
 
         Args:
             invoice_data: Invoice data dictionary
+            user_id: Optional user ID for MongoDB storage
 
         Returns:
             Complete audit report
@@ -130,6 +132,21 @@ class AuditOrchestrator:
                 "issues": self._count_issues(audit_report["findings"])
             })
 
+            # Save to MongoDB (silently, don't fail if MongoDB unavailable)
+            try:
+                from backend.utils.mongo_storage import get_mongo_storage
+                mongo_storage = get_mongo_storage()
+                amount = invoice_data.get('amount', 0.0)
+                mongo_storage.save_audit(
+                    audit_id=audit_id,
+                    audit_report=audit_report,
+                    amount=amount,
+                    user_id=user_id
+                )
+            except Exception as mongo_error:
+                # Silently fail - MongoDB is optional
+                logger.debug(f"MongoDB save failed (non-critical): {mongo_error}")
+
         except Exception as e:
             logger.error(f"Error during audit {audit_id}: {e}", exc_info=True)
             audit_report["overall_status"] = "error"
@@ -137,13 +154,14 @@ class AuditOrchestrator:
 
         return audit_report
 
-    def run_partial_audit(self, invoice_data: Dict, agents: List[str]) -> Dict:
+    def run_partial_audit(self, invoice_data: Dict, agents: List[str], user_id: Optional[str] = None) -> Dict:
         """
         Run audit with selected agents only
 
         Args:
             invoice_data: Invoice data
             agents: List of agent names to run (e.g., ['audit', 'compliance'])
+            user_id: Optional user ID for MongoDB storage
 
         Returns:
             Partial audit report
@@ -182,6 +200,21 @@ class AuditOrchestrator:
                         audit_report["overall_status"] = "error"
                     elif agent_findings.get("status") == "warning" and audit_report["overall_status"] == "pass":
                         audit_report["overall_status"] = "warning"
+
+            # Save to MongoDB (silently, don't fail if MongoDB unavailable)
+            try:
+                from backend.utils.mongo_storage import get_mongo_storage
+                mongo_storage = get_mongo_storage()
+                amount = invoice_data.get('amount', 0.0)
+                mongo_storage.save_audit(
+                    audit_id=audit_id,
+                    audit_report=audit_report,
+                    amount=amount,
+                    user_id=user_id
+                )
+            except Exception as mongo_error:
+                # Silently fail - MongoDB is optional
+                logger.debug(f"MongoDB save failed (non-critical): {mongo_error}")
 
         except Exception as e:
             logger.error(f"Error during partial audit: {e}", exc_info=True)
@@ -252,15 +285,16 @@ def get_orchestrator() -> AuditOrchestrator:
     return orchestrator
 
 
-def run_audit(invoice_data: Dict) -> Dict:
+def run_audit(invoice_data: Dict, user_id: Optional[str] = None) -> Dict:
     """
     Run complete audit
 
     Args:
         invoice_data: Invoice data
+        user_id: Optional user ID for MongoDB storage
 
     Returns:
         Audit report
     """
     orch = get_orchestrator()
-    return orch.run_audit(invoice_data)
+    return orch.run_audit(invoice_data, user_id=user_id)

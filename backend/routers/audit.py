@@ -53,11 +53,25 @@ class InvoiceData(BaseModel):
             else:
                 data['invoice_number'] = ""
             
-            # Handle items - ensure it's a list
+            # Handle items - ensure it's a list of dictionaries
             if 'items' not in data:
                 data['items'] = []
             elif data['items'] is None:
                 data['items'] = []
+            elif isinstance(data['items'], list):
+                # Convert string items to dictionaries
+                normalized_items = []
+                for item in data['items']:
+                    if isinstance(item, str):
+                        # Convert string to dict with 'name' field
+                        normalized_items.append({'name': item, 'quantity': 1, 'price': 0.0})
+                    elif isinstance(item, dict):
+                        # Already a dict, keep as is
+                        normalized_items.append(item)
+                    else:
+                        # Skip invalid items
+                        logger.warning(f"Skipping invalid item type: {type(item)}")
+                data['items'] = normalized_items
         
         return data
 
@@ -106,31 +120,16 @@ async def execute_audit(request: AuditRequest, user_id: Optional[str] = Query(No
         # Convert Pydantic model to dict
         invoice_dict = request.invoice_data.dict()
 
-        # Run audit
+        # Run audit (MongoDB saving is handled inside orchestrator methods)
         if request.agents:
             # Partial audit with selected agents
             orchestrator = get_orchestrator()
-            audit_report = orchestrator.run_partial_audit(invoice_dict, request.agents)
+            audit_report = orchestrator.run_partial_audit(invoice_dict, request.agents, user_id=user_id)
         else:
             # Full audit with all agents
-            audit_report = run_audit(invoice_dict)
+            audit_report = run_audit(invoice_dict, user_id=user_id)
 
         logger.info(f"Audit completed: {audit_report['audit_id']} - Status: {audit_report['overall_status']}")
-
-        # Save to MongoDB (silently, don't expose to frontend)
-        try:
-            from backend.utils.mongo_storage import get_mongo_storage
-            mongo_storage = get_mongo_storage()
-            amount = invoice_dict.get('amount', 0.0)
-            mongo_storage.save_audit(
-                audit_id=audit_report['audit_id'],
-                audit_report=audit_report,
-                amount=amount,
-                user_id=user_id
-            )
-        except Exception as mongo_error:
-            # Silently fail - MongoDB is optional
-            logger.debug(f"MongoDB save failed (non-critical): {mongo_error}")
 
         return AuditResponse(**audit_report)
 

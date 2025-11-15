@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ingestionAPI, auditAPI } from '@/services/api';
+import { ingestionAPI, auditAPI, type InvoiceData } from '@/services/api';
 import { pinataService } from '@/services/pinata';
 import { hashJSONToBytes32, encryptAuditReport } from '@/services/crypto';
 import { useToast } from '@/components/ui/use-toast';
@@ -156,16 +156,35 @@ export function UnifiedAuditFlow() {
             // Step 3: Run Audit
             setStep('auditing');
             setProgress('Running comprehensive AI audit...');
-            const invoiceData = {
-                vendor: ingestionResult.extracted_fields.vendor || '',
-                date: ingestionResult.extracted_fields.date || new Date().toISOString().split('T')[0],
-                amount: ingestionResult.extracted_fields.amount || 0,
-                tax: ingestionResult.extracted_fields.tax || 0,
-                category: ingestionResult.extracted_fields.category || '',
-                invoice_number: ingestionResult.extracted_fields.invoice_number || '',
-                items: ingestionResult.extracted_fields.items || [],
-                payment_method: ingestionResult.extracted_fields.payment_method || '',
+
+            // Normalize items array - convert strings to objects
+            const normalizeItems = (items: any[]): Array<Record<string, any>> => {
+                if (!Array.isArray(items)) return [];
+                return items.map(item => {
+                    if (typeof item === 'string') {
+                        return { name: item, quantity: 1, price: 0.0 };
+                    } else if (typeof item === 'object' && item !== null) {
+                        return item;
+                    }
+                    return { name: String(item), quantity: 1, price: 0.0 };
+                });
             };
+
+            const invoiceData: InvoiceData = {
+                vendor: ingestionResult.extracted_fields.vendor || '',
+                date: ingestionResult.extracted_fields.date || new Date().toISOString().split('T')[0], // Required field
+                amount: ingestionResult.extracted_fields.amount || 0,
+                tax: ingestionResult.extracted_fields.tax ?? 0,
+                category: ingestionResult.extracted_fields.category || 'general',
+                invoice_number: ingestionResult.extracted_fields.invoice_number || '',
+                items: normalizeItems(ingestionResult.extracted_fields.items || []),
+                payment_method: ingestionResult.extracted_fields.payment_method || null,
+            };
+
+            // Validate required fields
+            if (!invoiceData.vendor || !invoiceData.date) {
+                throw new Error('Vendor and Date are required fields. Please ensure the document contains this information.');
+            }
 
             let audit;
             try {

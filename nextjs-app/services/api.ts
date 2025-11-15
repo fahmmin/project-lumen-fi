@@ -63,16 +63,29 @@ export const auditAPI = {
     async executeAudit(invoiceData: InvoiceData, userId?: string): Promise<AuditResponse> {
         try {
             const params = userId ? { user_id: userId } : {};
+            // Normalize items array - convert strings to objects
+            const normalizeItems = (items: any[]): Array<Record<string, any>> => {
+                if (!Array.isArray(items)) return [];
+                return items.map(item => {
+                    if (typeof item === 'string') {
+                        return { name: item, quantity: 1, price: 0.0 };
+                    } else if (typeof item === 'object' && item !== null) {
+                        return item;
+                    }
+                    return { name: String(item), quantity: 1, price: 0.0 };
+                });
+            };
+
             // Ensure all required fields have valid values
             const sanitizedData = {
                 vendor: invoiceData.vendor || '',
-                date: invoiceData.date || new Date().toISOString().split('T')[0],
+                date: invoiceData.date || new Date().toISOString().split('T')[0], // Required field
                 amount: invoiceData.amount || 0,
                 tax: invoiceData.tax ?? 0,
                 category: invoiceData.category || 'general',
                 invoice_number: invoiceData.invoice_number || '',
-                items: invoiceData.items || [],
-                payment_method: invoiceData.payment_method || null,
+                items: normalizeItems(invoiceData.items || []),
+                payment_method: invoiceData.payment_method || null, // Backend expects null for empty
             };
             const response = await axios.post<AuditResponse>(
                 `${API_BASE_URL}/audit/`,
@@ -113,17 +126,56 @@ export const auditAPI = {
     async quickAudit(invoiceData: InvoiceData, userId?: string): Promise<any> {
         try {
             const params = userId ? { user_id: userId } : {};
+            // Normalize items array - convert strings to objects
+            const normalizeItems = (items: any[]): Array<Record<string, any>> => {
+                if (!Array.isArray(items)) return [];
+                return items.map(item => {
+                    if (typeof item === 'string') {
+                        return { name: item, quantity: 1, price: 0.0 };
+                    } else if (typeof item === 'object' && item !== null) {
+                        return item;
+                    }
+                    return { name: String(item), quantity: 1, price: 0.0 };
+                });
+            };
+
+            // Ensure all required fields have valid values
+            const sanitizedData = {
+                vendor: invoiceData.vendor || '',
+                date: invoiceData.date || new Date().toISOString().split('T')[0], // Required field
+                amount: invoiceData.amount || 0,
+                tax: invoiceData.tax ?? 0,
+                category: invoiceData.category || 'general',
+                invoice_number: invoiceData.invoice_number || '',
+                items: normalizeItems(invoiceData.items || []),
+                payment_method: invoiceData.payment_method || null, // Backend expects null for empty
+            };
             const response = await axios.post(
                 `${API_BASE_URL}/audit/quick`,
-                invoiceData,
+                sanitizedData, // Backend expects invoice_data directly, not wrapped
                 { params }
             );
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                throw new Error(
-                    error.response?.data?.detail || 'Failed to execute quick audit'
-                );
+                const errorDetail = error.response?.data?.detail;
+                let errorMessage = 'Failed to execute quick audit';
+
+                if (typeof errorDetail === 'string') {
+                    errorMessage = errorDetail;
+                } else if (Array.isArray(errorDetail)) {
+                    // Handle Pydantic validation errors
+                    const validationErrors = errorDetail.map((err: any) => {
+                        const field = err.loc?.join('.') || 'unknown';
+                        const msg = err.msg || 'validation error';
+                        return `${field}: ${msg}`;
+                    }).join(', ');
+                    errorMessage = `Validation error: ${validationErrors}`;
+                } else if (errorDetail && typeof errorDetail === 'object') {
+                    errorMessage = JSON.stringify(errorDetail);
+                }
+
+                throw new Error(errorMessage);
             }
             throw error;
         }

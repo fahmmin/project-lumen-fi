@@ -1,44 +1,16 @@
 [
   {
-    "goal_id": "goal_4e987a8423b2",
+    "goal_id": "goal_7a1f36a0a76c",
     "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
-    "name": "Test Goal",
-    "target_amount": 10000.0,
-    "target_date": "2025-12-31",
-    "current_savings": 1000.0,
-    "progress_percentage": 10.0,
+    "name": "Buy Car",
+    "target_amount": 1000.0,
+    "target_date": "2027-01-10",
+    "current_savings": 50.0,
+    "progress_percentage": 5.0,
     "status": "on_track",
-    "priority": "high",
+    "priority": "medium",
     "monthly_contribution": null,
-    "created_at": "2025-11-15 02:29:29.763994",
-    "updated_at": "2025-11-15 02:29:29.764008"
-  },
-  {
-    "goal_id": "goal_5110bb5855e4",
-    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
-    "name": "Test Goal",
-    "target_amount": 10000.0,
-    "target_date": "2025-12-31",
-    "current_savings": 1000.0,
-    "progress_percentage": 10.0,
-    "status": "on_track",
-    "priority": "high",
-    "monthly_contribution": null,
-    "created_at": "2025-11-15 03:18:32.810433",
-    "updated_at": "2025-11-15 03:18:32.810445"
-  },
-  {
-    "goal_id": "goal_4acb1868acf5",
-    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
-    "name": "Test Goal",
-    "target_amount": 10000.0,
-    "target_date": "2025-12-31",
-    "current_savings": 1000.0,
-    "progress_percentage": 10.0,
-    "status": "on_track",
-    "priority": "high",
-    "monthly_contribution": null,
-    "created_at": "2025-11-15 03:19:25.799215",
-    "updated_at": "2025-11-15 03:19:25.799226"
+    "created_at": "2025-11-15 10:44:59.683226",
+    "updated_at": "2025-11-15 10:44:59.683237"
   }
 ]

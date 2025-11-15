@@ -46,7 +46,13 @@ export default function AuditPage() {
         if (storedData) {
             try {
                 const data = JSON.parse(storedData);
-                setFormData(data);
+                // Ensure required fields have defaults
+                setFormData({
+                    ...data,
+                    date: data.date || new Date().toISOString().split('T')[0], // Ensure date is always present
+                    vendor: data.vendor || '',
+                    amount: data.amount || 0,
+                });
                 sessionStorage.removeItem('auditData');
             } catch (e) {
                 // Ignore
@@ -85,11 +91,34 @@ export default function AuditPage() {
         setAuditResult(null);
 
         try {
+            // Ensure required fields are present
+            const sanitizedFormData: InvoiceData = {
+                vendor: formData.vendor || '',
+                date: formData.date || new Date().toISOString().split('T')[0], // Required field
+                amount: formData.amount || 0,
+                tax: formData.tax ?? 0,
+                category: formData.category || 'general',
+                invoice_number: formData.invoice_number || '',
+                items: formData.items || [],
+                payment_method: formData.payment_method || undefined, // Will be converted to null by API service
+            };
+
+            // Validate required fields
+            if (!sanitizedFormData.vendor || !sanitizedFormData.date) {
+                toast({
+                    title: 'Validation error',
+                    description: 'Vendor and Date are required fields',
+                    variant: 'destructive',
+                });
+                setLoading(false);
+                return;
+            }
+
             await simulateProgress();
 
             const result = auditType === 'full'
-                ? await auditAPI.executeAudit(formData, userId || undefined)
-                : await auditAPI.quickAudit(formData, userId || undefined);
+                ? await auditAPI.executeAudit(sanitizedFormData, userId || undefined)
+                : await auditAPI.quickAudit(sanitizedFormData, userId || undefined);
 
             setAuditResult(result as AuditResponse);
             toast({
