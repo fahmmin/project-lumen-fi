@@ -72,6 +72,21 @@ class Settings(BaseSettings):
     # MongoDB settings
     MONGO_URI: Optional[str] = None
 
+    # SendGrid Email settings
+    SENDGRID_API_KEY: Optional[str] = None
+    SENDGRID_FROM_EMAIL: str = "noreply@projectlumen.ai"
+    SENDGRID_FROM_NAME: str = "Project Lumen Financial Reports"
+
+    # Report settings
+    REPORTS_DIR: Path = DATA_DIR / "reports"
+    REPORT_GENERATION_ENABLED: bool = True
+
+    # Scheduled report settings
+    SCHEDULED_REPORTS_ENABLED: bool = True
+    DEFAULT_REPORT_SCHEDULE: str = "weekly"  # weekly, monthly, quarterly
+    REPORT_GENERATION_DAY: int = 1  # Day of week (0=Monday, 6=Sunday) for weekly reports
+    REPORT_GENERATION_HOUR: int = 8  # Hour of day (24-hour format)
+
     # Agent settings
     AUDIT_THRESHOLD: float = 0.15  # Deviation threshold for anomaly
     FRAUD_ZSCORE_THRESHOLD: float = 3.0
@@ -93,8 +108,9 @@ class Settings(BaseSettings):
 # Global settings instance
 settings = Settings()
 
-# Ensure upload directory exists
+# Ensure directories exist
 settings.UPLOAD_DIR.mkdir(exist_ok=True)
+settings.REPORTS_DIR.mkdir(exist_ok=True)
 
 
 # Document schema for LLM extraction
