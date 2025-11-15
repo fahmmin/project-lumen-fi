@@ -11,9 +11,10 @@ from fastapi import status
 import time
 
 from backend.config import settings
-from backend.routers import ingest, audit, memory, users, goals, personal_finance, reminders, subscriptions, forensics, gamification, websocket, voice, family, social, reports, email_integration, scheduled_reports
+from backend.routers import ingest, audit, memory, users, goals, personal_finance, reminders, subscriptions, forensics, gamification, websocket, voice, family, social, reports, email_integration, scheduled_reports, assistant
 from backend.utils.logger import logger
 from backend.utils.report_scheduler import get_report_scheduler
+from backend.agents.api_registry import get_api_registry
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -153,6 +154,7 @@ app.include_router(social.router)  # Phase 2: Social comparison
 app.include_router(reports.router)  # Phase 2: PDF reports
 app.include_router(email_integration.router)  # Phase 2: Email parsing
 app.include_router(scheduled_reports.router)  # Phase 2: Scheduled reports
+app.include_router(assistant.router)  # Phase 2: AI Assistant chatbot
 
 
 # Root endpoint
@@ -183,7 +185,8 @@ async def root():
             "social": "/social",
             "reports": "/reports",
             "email": "/email",
-            "scheduled_reports": "/scheduled-reports"
+            "scheduled_reports": "/scheduled-reports",
+            "assistant": "/assistant"
         }
     }
 
@@ -303,6 +306,11 @@ async def startup_event():
         report_scheduler = get_report_scheduler()
         report_scheduler.start()
         logger.info("Report scheduler started")
+
+        # Initialize AI Assistant API Registry
+        api_registry = get_api_registry()
+        api_registry.scan_app(app)
+        logger.info(f"AI Assistant initialized with {len(api_registry.get_all_endpoints())} endpoints")
 
         logger.info("=" * 60)
         logger.info("System ready for requests")
