@@ -22,6 +22,104 @@ class IntentDetectionAgent:
         self.api_registry = get_api_registry()
         self.ollama = ollama_client
 
+    def is_conversational(self, user_message: str) -> bool:
+        """
+        Determine if message is casual conversation vs action request
+
+        Returns:
+            True if conversational (no API call needed)
+            False if action request (should call API)
+        """
+        message_lower = user_message.lower().strip()
+
+        # Casual greetings and conversation
+        conversational_patterns = [
+            "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
+            "how are you", "what's up", "whats up", "wassup",
+            "who are you", "what are you", "what can you do",
+            "help", "thanks", "thank you", "bye", "goodbye",
+            "nice to meet you", "pleased to meet you"
+        ]
+
+        # If message is very short and matches conversational pattern
+        if len(message_lower.split()) <= 5:
+            for pattern in conversational_patterns:
+                if pattern in message_lower:
+                    return True
+
+        # Action keywords that indicate API call needed
+        action_keywords = [
+            "add", "create", "update", "delete", "remove", "set", "change",
+            "show", "get", "fetch", "find", "search", "list",
+            "generate", "send", "upload", "submit", "save",
+            "calculate", "analyze", "check", "view", "see",
+            "spend", "spent", "budget", "goal", "receipt", "transaction",
+            "subscription", "report", "alert", "notification"
+        ]
+
+        # If message contains action keywords, it's not conversational
+        for keyword in action_keywords:
+            if keyword in message_lower:
+                return False
+
+        # Default: if short message without action words, treat as conversational
+        if len(message_lower.split()) <= 10:
+            return True
+
+        return False
+
+    def generate_conversational_response(self, user_message: str) -> str:
+        """
+        Generate friendly conversational response using LLM
+
+        Args:
+            user_message: User's conversational message
+
+        Returns:
+            Natural language response
+        """
+        try:
+            prompt = f"""You are a friendly financial assistant chatbot for Project Lumen.
+
+User said: "{user_message}"
+
+Respond in a warm, helpful way. If they're greeting you, greet them back and mention you can help with:
+- Tracking expenses and receipts
+- Setting financial goals
+- Analyzing spending patterns
+- Generating financial reports
+- Managing subscriptions
+- And much more!
+
+If they ask what you can do, give examples like:
+- "I spent $50 at Starbucks"
+- "Create a goal to save $10000"
+- "Show my spending dashboard"
+- "Generate a weekly report"
+
+Keep your response concise (2-3 sentences max).
+
+Response:"""
+
+            response = self.ollama.generate(
+                prompt=prompt,
+                temperature=0.7,
+                max_tokens=150
+            )
+
+            return response.strip()
+
+        except Exception as e:
+            logger.error(f"Error generating conversational response: {e}")
+            # Fallback responses
+            message_lower = user_message.lower()
+            if any(word in message_lower for word in ["hi", "hello", "hey"]):
+                return "Hello! I'm your financial assistant. I can help you track expenses, set goals, analyze spending, and more. What would you like to do?"
+            elif "what can you do" in message_lower or "help" in message_lower:
+                return "I can help you with:\n• Track receipts and expenses\n• Set and monitor financial goals\n• Analyze your spending patterns\n• Generate financial reports\n• Manage subscriptions\n\nJust tell me what you'd like to do in plain English!"
+            else:
+                return "I'm here to help with your finances! You can ask me to track expenses, create goals, analyze spending, or generate reports. What would you like to do?"
+
     def detect_intent(
         self,
         user_message: str,

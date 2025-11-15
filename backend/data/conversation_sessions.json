@@ -707,5 +707,240 @@
     ],
     "context": {},
     "status": "active"
+  },
+  "f29329f4-19c2-4d92-854e-7b64873cdfeb": {
+    "session_id": "f29329f4-19c2-4d92-854e-7b64873cdfeb",
+    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+    "created_at": "2025-11-15 12:14:44.246623",
+    "updated_at": "2025-11-15 12:14:44.246628",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi",
+        "timestamp": "2025-11-15 12:14:44.247969",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "Hi there! Welcome to Project Lumen. I'm here to help you take control of your finances - whether it's tracking those daily expenses, setting and crushing financial goals, analyzing your spending patterns, or simply getting a clear picture of where your money is going. What can I assist you with today?",
+        "timestamp": "2025-11-15 12:14:47.234954",
+        "metadata": null
+      },
+      {
+        "role": "user",
+        "content": "how much did i spent",
+        "timestamp": "2025-11-15 12:15:02.023431",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\ud83d\udd35 Called API: GET /finance/predictions/{user_id}\n\u2705 Not enough data for prediction (need at least 10 transactions)\n\n\u2705 Process completed successfully!",
+        "timestamp": "2025-11-15 12:15:03.761455",
+        "metadata": {
+          "action": {
+            "endpoint": "/finance/predictions/{user_id}",
+            "method": "GET",
+            "parameters": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c"
+            },
+            "success": true,
+            "response_data": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+              "prediction_for": "2025-12",
+              "predicted_total": 0.0,
+              "confidence": "low",
+              "message": "Not enough data for prediction (need at least 10 transactions)"
+            },
+            "error": null
+          }
+        }
+      },
+      {
+        "role": "user",
+        "content": "Get budget recommendations",
+        "timestamp": "2025-11-15 12:15:14.579886",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\ud83d\udd35 Called API: GET /finance/budget-recommendations/{user_id}\n\u2705\nUser Id: 0x1aea8cf0dfe13ed3025910c88f7356935d76536c\nCurrent Budget:\nActual Spending Monthly:\nRecommended Budget:\nRationale:\nPotential Savings: 0\nAnnual Impact: 0\n\n\u2705 Process completed successfully!",
+        "timestamp": "2025-11-15 12:15:16.539418",
+        "metadata": {
+          "action": {
+            "endpoint": "/finance/budget-recommendations/{user_id}",
+            "method": "GET",
+            "parameters": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c"
+            },
+            "success": true,
+            "response_data": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+              "current_budget": {},
+              "actual_spending_monthly": {},
+              "recommended_budget": {},
+              "rationale": {},
+              "potential_savings": 0,
+              "annual_impact": 0
+            },
+            "error": null
+          }
+        }
+      },
+      {
+        "role": "user",
+        "content": "Check savings opportunities",
+        "timestamp": "2025-11-15 12:15:43.742669",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\ud83d\udd35 Called API: GET /finance/insights/{user_id}\n\u2705\n\ud83d\udca1 Your savings rate (0%) is below recommended 10-20%\n\n\u2705 Process completed successfully!",
+        "timestamp": "2025-11-15 12:15:45.557428",
+        "metadata": {
+          "action": {
+            "endpoint": "/finance/insights/{user_id}",
+            "method": "GET",
+            "parameters": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c"
+            },
+            "success": true,
+            "response_data": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+              "insights": [
+                "Your savings rate (0%) is below recommended 10-20%"
+              ]
+            },
+            "error": null
+          }
+        }
+      },
+      {
+        "role": "user",
+        "content": "See spending by category",
+        "timestamp": "2025-11-15 12:15:47.236859",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\ud83d\udd35 Called API: GET /finance/insights/{user_id}\n\u2705\n\ud83d\udca1 Your savings rate (0%) is below recommended 10-20%\n\n\u2705 Process completed successfully!",
+        "timestamp": "2025-11-15 12:15:49.141164",
+        "metadata": {
+          "action": {
+            "endpoint": "/finance/insights/{user_id}",
+            "method": "GET",
+            "parameters": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c"
+            },
+            "success": true,
+            "response_data": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+              "insights": [
+                "Your savings rate (0%) is below recommended 10-20%"
+              ]
+            },
+            "error": null
+          }
+        }
+      },
+      {
+        "role": "user",
+        "content": "See spending by category",
+        "timestamp": "2025-11-15 12:16:09.329739",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\ud83d\udd35 Called API: GET /finance/insights/{user_id}\n\u2705\n\ud83d\udca1 Your savings rate (0%) is below recommended 10-20%\n\n\u2705 Process completed successfully!",
+        "timestamp": "2025-11-15 12:16:11.157699",
+        "metadata": {
+          "action": {
+            "endpoint": "/finance/insights/{user_id}",
+            "method": "GET",
+            "parameters": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c"
+            },
+            "success": true,
+            "response_data": {
+              "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+              "insights": [
+                "Your savings rate (0%) is below recommended 10-20%"
+              ]
+            },
+            "error": null
+          }
+        }
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "395b2e7f-3efc-4ba1-a006-de4d8df86c35": {
+    "session_id": "395b2e7f-3efc-4ba1-a006-de4d8df86c35",
+    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+    "created_at": "2025-11-15 12:23:00.790930",
+    "updated_at": "2025-11-15 12:23:00.790938",
+    "messages": [
+      {
+        "role": "user",
+        "content": "I just uploaded a file: 1012-receipt.jpg (Document ID: doc_389db066a194). The file has been processed and 1 chunks were created. Please help me understand and analyze the contents of this document.",
+        "timestamp": "2025-11-15 12:23:00.793597",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\u274c Not found: Report not found",
+        "timestamp": "2025-11-15 12:23:01.951944",
+        "metadata": {
+          "action": {
+            "endpoint": "/reports/download/{filename}",
+            "method": "GET",
+            "parameters": {
+              "filename": "1012-receipt.jpg"
+            },
+            "success": false,
+            "response_data": {
+              "detail": "Report not found"
+            },
+            "error": "Report not found"
+          }
+        }
+      },
+      {
+        "role": "user",
+        "content": "tell me he details and start auduting",
+        "timestamp": "2025-11-15 12:26:01.438285",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! I'm so glad you're here. Welcome to Project Lumen's financial assistant chatbot! We can help with all sorts of things, like tracking expenses and receipts, setting financial goals, analyzing spending patterns, generating financial reports, managing subscriptions... and much more! What would you like to start with?",
+        "timestamp": "2025-11-15 12:26:02.456619",
+        "metadata": null
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "52aaf0f8-662b-4fd4-b9d7-a6100d624123": {
+    "session_id": "52aaf0f8-662b-4fd4-b9d7-a6100d624123",
+    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+    "created_at": "2025-11-15 12:27:03.216267",
+    "updated_at": "2025-11-15 12:27:03.216275",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What information is in this document?",
+        "timestamp": "2025-11-15 12:27:03.218448",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! I'm happy to help you with any financial questions or tasks. This document appears to be... actually, could you please share the document with me so I can take a look? That way, I can better understand what information is in it and assist you further.",
+        "timestamp": "2025-11-15 12:27:04.109793",
+        "metadata": null
+      }
+    ],
+    "context": {},
+    "status": "active"
   }
 }

@@ -88,8 +88,36 @@ async def chat(request: ChatRequest):
                 param_agent, orchestrator, conv_manager, response_gen
             )
 
-        # Step 1: Detect Intent
+        # Step 0: Check if this is conversational (no API call needed)
         logger.info(f"Processing message: '{request.message[:100]}...'")
+
+        if intent_agent.is_conversational(request.message):
+            logger.info("Message is conversational - generating LLM response")
+
+            # Generate conversational response
+            conversational_response = intent_agent.generate_conversational_response(request.message)
+
+            # Add to conversation history
+            conv_manager.add_message(
+                session_id=session.session_id,
+                role=MessageRole.ASSISTANT,
+                content=conversational_response
+            )
+
+            return ChatResponse(
+                response=conversational_response,
+                session_id=session.session_id,
+                action_taken=None,  # No API call
+                follow_up_needed=False,
+                suggestions=[
+                    "I spent $50 at Starbucks",
+                    "Create a goal to save $10000",
+                    "Show my dashboard"
+                ]
+            )
+
+        # Step 1: Detect Intent (API endpoint)
+        logger.info("Message requires action - detecting API endpoint")
 
         intent_result = intent_agent.detect_intent(
             user_message=request.message,
