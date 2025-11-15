@@ -13,6 +13,10 @@ NEXT_PUBLIC_PINATA_API_KEY=your_pinata_jwt_token_here
 
 # Contract Address - Set after deploying the contract to Sepolia
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
+
+# Gemini API Key (Optional) - For ITR and GST checker realistic data generation
+# Get from https://makersuite.google.com/app/apikey
+NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ## Hardhat Project (.env)
@@ -55,6 +59,17 @@ ETHERSCAN_API_KEY=your_etherscan_api_key_here
 2. Navigate to API Keys section
 3. Create a new JWT API key
 4. Copy the JWT token and paste it in `.env.local` as `NEXT_PUBLIC_PINATA_API_KEY`
+
+## Getting Your Gemini API Key (Optional)
+
+The ITR and GST checkers use Gemini AI to generate realistic data. If you don't provide a key, they will use random generated data instead.
+
+1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the API key and paste it in `.env.local` as `NEXT_PUBLIC_GEMINI_API_KEY`
+
+**Note:** The checkers will work without this key, but will use simpler random data generation instead of AI-generated realistic values.
 
 ## Getting Sepolia Testnet Setup
 
