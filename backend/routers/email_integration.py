@@ -12,6 +12,7 @@ from backend.utils.email_parser import email_parser
 from backend.rag.chunker import chunk_document
 from backend.rag.retriever import index_documents
 from backend.routers.ingest import IngestionResponse
+from backend.agents.receipt_orchestrator import get_receipt_orchestrator
 from backend.utils.logger import logger
 
 router = APIRouter(prefix="/email", tags=["Email Integration"])
@@ -114,6 +115,83 @@ Extracted from email with {extracted.get('confidence', 0) * 100:.0f}% confidence
         raise
     except Exception as e:
         logger.error(f"Error parsing email receipt: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/parse-receipt-smart")
+async def parse_receipt_with_intelligence(request: EmailReceiptRequest):
+    """
+    Parse receipt with complete intelligent analysis using all agents
+
+    **New Enhanced Flow:**
+    1. Parse receipt with LLM
+    2. Check for duplicates
+    3. Real-time budget alerts
+    4. Goal impact analysis
+    5. Savings opportunities
+    6. Pattern detection
+    7. Store with enriched metadata
+
+    **Returns:**
+    Complete analysis with:
+    - Budget alerts
+    - Goal impact
+    - Savings suggestions
+    - Pattern insights
+    - Actionable recommendations
+
+    **Usage:**
+    ```bash
+    curl -X POST "http://localhost:8000/email/parse-receipt-smart" \\
+      -H "Content-Type: application/json" \\
+      -d '{
+        "user_id": "test_user_001",
+        "email_subject": "Zomato Order Confirmed",
+        "email_body": "Your order from ABC Restaurant...Total: Rs450..."
+      }'
+    ```
+    """
+    try:
+        # Combine email subject and body for full context
+        receipt_text = f"Subject: {request.email_subject}\n\n{request.email_body}"
+
+        # Use orchestrator for complete analysis
+        orchestrator = get_receipt_orchestrator()
+        result = orchestrator.ingest_receipt(
+            receipt_text=receipt_text,
+            user_id=request.user_id,
+            source="email"
+        )
+
+        # Check for failures
+        if result['status'] in ['failed', 'duplicate']:
+            raise HTTPException(
+                status_code=400 if result['status'] == 'duplicate' else 500,
+                detail=result.get('message', result.get('error', 'Unknown error'))
+            )
+
+        logger.info(f"Smart receipt processing complete for user {request.user_id}")
+
+        return {
+            "status": "success",
+            "document_id": result.get('receipt', {}).get('document_id'),
+            "receipt": result.get('receipt', {}),
+            "summary": result.get('summary', ''),
+            "alerts": result.get('alerts', []),
+            "recommendations": result.get('recommendations', []),
+            "detailed_analysis": {
+                "budget": result.get('steps', {}).get('budget_alert', {}),
+                "goals": result.get('steps', {}).get('goal_impact', {}),
+                "savings": result.get('steps', {}).get('savings', {}),
+                "patterns": result.get('steps', {}).get('patterns', {})
+            },
+            "ingested_at": result.get('ingested_at')
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in smart receipt processing: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
