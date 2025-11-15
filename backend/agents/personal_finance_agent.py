@@ -11,6 +11,7 @@ import numpy as np
 from backend.rag.vector_store import get_vector_store
 from backend.utils.user_storage import get_user_storage
 from backend.utils.time_series import TimeSeriesForecaster
+from backend.utils.ollama_client import ollama_client
 from backend.utils.logger import logger
 
 
@@ -21,6 +22,7 @@ class PersonalFinanceAgent:
         self.vector_store = get_vector_store()
         self.user_storage = get_user_storage()
         self.forecaster = TimeSeriesForecaster()
+        self.ollama = ollama_client
 
     def analyze_dashboard(self, user_id: str, period: str = "month") -> Dict:
         """
@@ -322,6 +324,294 @@ class PersonalFinanceAgent:
             "annual_impact": round(potential_savings * 12, 2)
         }
 
+    def check_budget_alert_on_receipt(self, user_id: str, receipt: Dict) -> Dict:
+        """
+        Real-time budget alert when receipt is added - uses LLM for intelligent analysis
+
+        Args:
+            user_id: User ID
+            receipt: Receipt data with vendor, amount, category
+
+        Returns:
+            Alert data with LLM-generated insights
+        """
+        logger.info(f"PersonalFinanceAgent: Checking budget alert for receipt - {receipt.get('vendor')}")
+
+        profile = self.user_storage.ensure_profile_exists(user_id)
+        category = receipt.get('category', 'other')
+        amount = receipt.get('amount', 0)
+
+        # Get spending so far this month
+        end_date = date.today()
+        start_date = end_date.replace(day=1)  # First day of month
+
+        receipts = self._get_user_receipts(user_id, start_date, end_date)
+
+        # Calculate spent so far in this category (including new receipt)
+        category_receipts = [r for r in receipts if r.get('category') == category]
+        spent_so_far = sum(r['amount'] for r in category_receipts) + amount
+
+        # Get budget
+        budget = profile.budget_categories.get(category, 0)
+
+        # Calculate metrics
+        percent_used = (spent_so_far / budget * 100) if budget > 0 else 0
+        remaining = budget - spent_so_far
+        days_left_in_month = (end_date.replace(day=28) + timedelta(days=4)).replace(day=1).day - end_date.day
+
+        # Use LLM for intelligent alert
+        prompt = f"""Analyze this spending situation and generate a helpful, personalized budget alert.
+
+Current Situation:
+- Category: {category}
+- This purchase: ${amount:.2f} at {receipt.get('vendor', 'Unknown')}
+- Month-to-date spent in {category}: ${spent_so_far:.2f}
+- Monthly budget for {category}: ${budget:.2f}
+- Budget used: {percent_used:.1f}%
+- Remaining budget: ${remaining:.2f}
+- Days left in month: {days_left_in_month}
+
+Generate a helpful alert message that:
+1. Informs the user of their current budget status
+2. Provides context (are they on track, over budget, or approaching limit?)
+3. Gives specific, actionable advice
+4. Is encouraging but honest
+
+Respond in JSON format:
+{{
+    "alert_level": "info/warning/critical",
+    "message": "personalized alert message",
+    "status": "on_track/approaching_limit/over_budget",
+    "advice": "specific actionable advice",
+    "should_notify": true/false
+}}
+
+Alert level guidelines:
+- info: < 70% of budget used
+- warning: 70-100% of budget used
+- critical: > 100% of budget used
+
+Return ONLY valid JSON."""
+
+        system_message = "You are a helpful financial advisor who provides encouraging but honest budget alerts."
+
+        try:
+            response = self.ollama.generate(
+                prompt=prompt,
+                system_message=system_message,
+                temperature=0.4,
+                max_tokens=500
+            )
+
+            result = self.ollama.parse_json_response(response)
+
+            if not result:
+                # Fallback to rule-based
+                return self._fallback_budget_alert(category, spent_so_far, budget, percent_used, remaining)
+
+            return {
+                "category": category,
+                "receipt_amount": amount,
+                "spent_so_far": round(spent_so_far, 2),
+                "budget": budget,
+                "percent_used": round(percent_used, 1),
+                "remaining": round(remaining, 2),
+                "days_left": days_left_in_month,
+                "alert": result
+            }
+
+        except Exception as e:
+            logger.error(f"Error in LLM budget alert: {e}")
+            return self._fallback_budget_alert(category, spent_so_far, budget, percent_used, remaining)
+
+    def generate_spending_insights_llm(self, user_id: str, receipts: List[Dict]) -> List[str]:
+        """
+        Generate intelligent spending insights using LLM analysis
+
+        Args:
+            user_id: User ID
+            receipts: List of recent receipts
+
+        Returns:
+            List of insight strings
+        """
+        if not receipts:
+            return ["No recent spending to analyze"]
+
+        # Get user context
+        profile = self.user_storage.ensure_profile_exists(user_id)
+        goals = self.user_storage.get_all_goals(user_id)
+
+        # Prepare spending summary
+        category_breakdown = self._calculate_category_breakdown(receipts)
+        total_spent = sum(r['amount'] for r in receipts)
+
+        # Format for LLM
+        category_summary = "\n".join([
+            f"- {cat}: ${data['amount']:.2f} ({data['count']} transactions)"
+            for cat, data in category_breakdown.items()
+        ])
+
+        active_goals_summary = "\n".join([
+            f"- {g.name}: ${g.current_savings:.2f} / ${g.target_amount:.2f}"
+            for g in goals if g.status == "on_track"
+        ]) if goals else "None"
+
+        prompt = f"""Analyze this user's spending and provide 3-5 intelligent, actionable insights.
+
+User Profile:
+- Monthly Income: ${profile.salary_monthly:.2f}
+
+Recent Spending (this month):
+- Total: ${total_spent:.2f}
+{category_summary}
+
+Active Goals:
+{active_goals_summary}
+
+Budget by Category:
+{chr(10).join([f'- {cat}: ${amount:.2f}' for cat, amount in profile.budget_categories.items()])}
+
+Provide insights that:
+1. Identify concerning trends or positive patterns
+2. Compare spending to budget and goals
+3. Suggest specific actionable improvements
+4. Are personalized and encouraging
+
+Respond in JSON format:
+{{
+    "insights": [
+        "insight 1",
+        "insight 2",
+        "insight 3"
+    ]
+}}
+
+Keep each insight concise (1-2 sentences) and actionable.
+Return ONLY valid JSON."""
+
+        system_message = "You are a financial advisor who provides personalized, actionable spending insights."
+
+        try:
+            response = self.ollama.generate(
+                prompt=prompt,
+                system_message=system_message,
+                temperature=0.5,
+                max_tokens=600
+            )
+
+            result = self.ollama.parse_json_response(response)
+
+            if result and 'insights' in result:
+                return result['insights']
+            else:
+                return self._generate_insights(category_breakdown, {}, 0, 0)
+
+        except Exception as e:
+            logger.error(f"Error generating LLM insights: {e}")
+            return ["Unable to generate insights at this time"]
+
+    def detect_spending_patterns_llm(self, user_id: str) -> Dict:
+        """
+        Use LLM to detect spending patterns and triggers
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Pattern analysis with triggers and recommendations
+        """
+        logger.info(f"PersonalFinanceAgent: Detecting spending patterns for {user_id}")
+
+        # Get last 2 months of receipts
+        end_date = date.today()
+        start_date = end_date - relativedelta(months=2)
+
+        receipts = self._get_user_receipts(user_id, start_date, end_date)
+
+        if len(receipts) < 10:
+            return {
+                "patterns_found": 0,
+                "message": "Not enough transaction history to detect patterns"
+            }
+
+        # Enrich receipts with temporal data
+        enriched_receipts = []
+        for r in receipts:
+            try:
+                dt = datetime.strptime(r['date'], "%Y-%m-%d")
+                enriched_receipts.append({
+                    **r,
+                    "day_of_week": dt.strftime("%A"),
+                    "is_weekend": dt.weekday() >= 5,
+                    "time_of_month": "early" if dt.day <= 10 else "mid" if dt.day <= 20 else "late"
+                })
+            except:
+                enriched_receipts.append(r)
+
+        # Format for LLM
+        receipt_summary = "\n".join([
+            f"- {r['date']} ({r.get('day_of_week', 'N/A')}): {r['vendor']} - ${r['amount']:.2f} ({r['category']})"
+            for r in enriched_receipts[:30]  # Last 30 transactions
+        ])
+
+        prompt = f"""Analyze these transactions to detect spending patterns and triggers.
+
+Transactions (last 2 months):
+{receipt_summary}
+
+Identify:
+1. Temporal patterns (specific days, weekends, time of month)
+2. Category patterns (which categories dominate spending)
+3. Spending triggers (events or situations that lead to spending)
+4. Recurring expenses vs impulse purchases
+5. Behavioral insights
+
+Respond in JSON format:
+{{
+    "patterns": [
+        {{
+            "type": "temporal/category/behavioral",
+            "description": "clear description",
+            "frequency": "how often",
+            "impact": "high/medium/low",
+            "examples": ["specific examples"]
+        }}
+    ],
+    "spending_triggers": [
+        "trigger 1",
+        "trigger 2"
+    ],
+    "recommendations": [
+        "actionable recommendation 1",
+        "actionable recommendation 2"
+    ],
+    "summary": "overall pattern summary"
+}}
+
+Return ONLY valid JSON."""
+
+        system_message = "You are a behavioral finance expert who identifies spending patterns and provides actionable insights."
+
+        try:
+            response = self.ollama.generate(
+                prompt=prompt,
+                system_message=system_message,
+                temperature=0.3,
+                max_tokens=1000
+            )
+
+            result = self.ollama.parse_json_response(response)
+
+            if not result:
+                return {"patterns_found": 0, "message": "Could not analyze patterns"}
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in pattern detection: {e}")
+            return {"patterns_found": 0, "error": str(e)}
+
     # ==================== HELPER METHODS ====================
 
     def _get_user_receipts(
@@ -471,6 +761,49 @@ class PersonalFinanceAgent:
             insights.append(f"Your savings rate ({savings_rate*100:.0f}%) is below recommended 10-20%")
 
         return insights
+
+    def _fallback_budget_alert(
+        self,
+        category: str,
+        spent_so_far: float,
+        budget: float,
+        percent_used: float,
+        remaining: float
+    ) -> Dict:
+        """Fallback budget alert when LLM fails"""
+        if percent_used >= 100:
+            alert_level = "critical"
+            status = "over_budget"
+            message = f"You've exceeded your {category} budget by ${abs(remaining):.2f}"
+            advice = f"Consider reducing {category} expenses for the rest of the month"
+            should_notify = True
+        elif percent_used >= 70:
+            alert_level = "warning"
+            status = "approaching_limit"
+            message = f"You've used {percent_used:.0f}% of your {category} budget (${remaining:.2f} remaining)"
+            advice = f"Be mindful of {category} spending for the rest of the month"
+            should_notify = True
+        else:
+            alert_level = "info"
+            status = "on_track"
+            message = f"You're on track with {category} spending ({percent_used:.0f}% used)"
+            advice = "Keep up the good work!"
+            should_notify = False
+
+        return {
+            "category": category,
+            "spent_so_far": round(spent_so_far, 2),
+            "budget": budget,
+            "percent_used": round(percent_used, 1),
+            "remaining": round(remaining, 2),
+            "alert": {
+                "alert_level": alert_level,
+                "message": message,
+                "status": status,
+                "advice": advice,
+                "should_notify": should_notify
+            }
+        }
 
 
 # Global agent instance
