@@ -11,6 +11,7 @@ from backend.agents.personal_finance_agent import get_personal_finance_agent
 from backend.agents.goal_planner_agent import get_goal_planner_agent
 from backend.agents.health_score_agent import get_health_score_agent
 from backend.agents.behavioral_agent import get_behavioral_agent
+from backend.agents.spending_analytics_agent import get_spending_analytics_agent
 from backend.utils.logger import logger
 
 router = APIRouter(prefix="/finance", tags=["finance"])
@@ -140,3 +141,60 @@ async def get_goal_progress(user_id: str, goal_id: str):
     except Exception as e:
         logger.error(f"Goal progress error: {e}")
         raise HTTPException(status_code=500, detail="Failed to track progress")
+
+
+# Spending analytics endpoints
+@router.get("/analytics/{user_id}/category/{category}")
+async def get_category_deep_dive(
+    user_id: str,
+    category: str,
+    months: int = Query(3, ge=1, le=12)
+):
+    """Get in-depth analysis for a specific spending category"""
+    try:
+        agent = get_spending_analytics_agent()
+        return agent.analyze_category_deep_dive(user_id, category, months)
+    except Exception as e:
+        logger.error(f"Category deep dive error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze category")
+
+
+@router.get("/analytics/{user_id}/monthly/{year}/{month}")
+async def get_monthly_analysis(user_id: str, year: int, month: int):
+    """Get comprehensive analysis for a specific month"""
+    try:
+        if month < 1 or month > 12:
+            raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
+
+        agent = get_spending_analytics_agent()
+        return agent.analyze_monthly_spending(user_id, year, month)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Monthly analysis error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze monthly spending")
+
+
+@router.get("/analytics/{user_id}/savings-opportunities")
+async def get_savings_opportunities(user_id: str):
+    """Get detailed savings opportunities by category"""
+    try:
+        agent = get_spending_analytics_agent()
+        return agent.get_savings_opportunities(user_id)
+    except Exception as e:
+        logger.error(f"Savings opportunities error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to find savings opportunities")
+
+
+@router.get("/analytics/{user_id}/trends")
+async def get_spending_trends(
+    user_id: str,
+    months: int = Query(6, ge=3, le=12)
+):
+    """Compare spending patterns over time"""
+    try:
+        agent = get_spending_analytics_agent()
+        return agent.compare_spending_patterns(user_id, months)
+    except Exception as e:
+        logger.error(f"Spending trends error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze spending trends")
