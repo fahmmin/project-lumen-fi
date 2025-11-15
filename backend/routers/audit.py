@@ -4,7 +4,7 @@ Handles audit execution
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, Field
 from typing import Dict, List, Optional, Any
 
 from backend.agents.orchestrator import run_audit, get_orchestrator
@@ -24,7 +24,7 @@ class InvoiceData(BaseModel):
     tax: float = 0.0  # Default to 0.0 if not provided
     category: str = "general"  # Default category if not provided
     invoice_number: str = ""  # Default to empty string if not provided
-    items: Optional[List[Dict]] = []  # May be empty if no line items
+    items: List[Dict] = Field(default_factory=list)  # May be empty if no line items
     payment_method: Optional[str] = None  # Optional field
 
     @model_validator(mode='before')
@@ -53,8 +53,10 @@ class InvoiceData(BaseModel):
             else:
                 data['invoice_number'] = ""
             
-            # Handle items
-            if 'items' not in data or data['items'] is None:
+            # Handle items - ensure it's a list
+            if 'items' not in data:
+                data['items'] = []
+            elif data['items'] is None:
                 data['items'] = []
         
         return data

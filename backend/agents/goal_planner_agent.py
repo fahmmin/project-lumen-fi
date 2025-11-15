@@ -10,6 +10,7 @@ from dateutil.relativedelta import relativedelta
 from backend.utils.user_storage import get_user_storage
 from backend.utils.investment_calculator import InvestmentCalculator
 from backend.agents.personal_finance_agent import get_personal_finance_agent
+from backend.utils.ollama_client import ollama_client
 from backend.utils.logger import logger
 
 
@@ -20,6 +21,7 @@ class GoalPlannerAgent:
         self.user_storage = get_user_storage()
         self.calculator = InvestmentCalculator()
         self.finance_agent = get_personal_finance_agent()
+        self.ollama = ollama_client
 
     def create_plan(self, goal_id: str, user_id: str) -> Dict:
         """
@@ -237,6 +239,221 @@ class GoalPlannerAgent:
             "adjustments_needed": adjustments
         }
 
+    def analyze_receipt_impact_on_goals(
+        self,
+        user_id: str,
+        receipt: Dict
+    ) -> Dict:
+        """
+        Analyze how a single receipt impacts user's goals using LLM
+
+        Args:
+            user_id: User ID
+            receipt: Receipt data with vendor, amount, category
+
+        Returns:
+            Goal impact analysis with LLM-generated insights
+        """
+        logger.info(f"GoalPlannerAgent: Analyzing receipt impact on goals - {receipt.get('vendor')}")
+
+        # Get user's active goals
+        goals = self.user_storage.get_all_goals(user_id)
+        active_goals = [g for g in goals if g.status in ["on_track", "behind"]]
+
+        if not active_goals:
+            return {
+                "has_goals": False,
+                "message": "No active goals to analyze impact",
+                "receipt_amount": receipt.get('amount', 0)
+            }
+
+        # Get user profile
+        profile = self.user_storage.ensure_profile_exists(user_id)
+
+        # Format goals for LLM
+        goals_summary = "\n".join([
+            f"- {g.name}: ${g.current_savings:.2f} / ${g.target_amount:.2f} (target: {g.target_date})"
+            for g in active_goals
+        ])
+
+        # Calculate current savings rate
+        try:
+            dashboard = self.finance_agent.analyze_dashboard(user_id, "month")
+            current_savings = dashboard['summary']['savings']
+        except:
+            current_savings = 0
+
+        prompt = f"""Analyze how this purchase impacts the user's financial goals.
+
+Purchase Details:
+- Vendor: {receipt.get('vendor', 'Unknown')}
+- Amount: ${receipt.get('amount', 0):.2f}
+- Category: {receipt.get('category', 'other')}
+
+User Financial Situation:
+- Monthly Income: ${profile.salary_monthly:.2f}
+- Current Monthly Savings: ${current_savings:.2f}
+
+Active Goals:
+{goals_summary}
+
+Analyze the impact of this purchase on the user's goals:
+1. Does this purchase delay any goals? By how much (days/weeks)?
+2. Which specific goal is most affected?
+3. What's the opportunity cost (what could this money have contributed to)?
+4. Is this purchase discretionary or necessary?
+5. Specific recommendation to stay on track
+
+Respond in JSON format:
+{{
+    "affects_goals": true/false,
+    "most_affected_goal": "goal name or null",
+    "delay_estimate": "X days/weeks or null",
+    "opportunity_cost": "specific description",
+    "is_discretionary": true/false,
+    "impact_level": "high/medium/low/none",
+    "recommendation": "specific actionable advice",
+    "alternative_action": "what user could do instead"
+}}
+
+Return ONLY valid JSON."""
+
+        system_message = "You are a financial coach who helps people understand how their spending affects their goals. Be specific and encouraging."
+
+        try:
+            response = self.ollama.generate(
+                prompt=prompt,
+                system_message=system_message,
+                temperature=0.3,
+                max_tokens=600
+            )
+
+            result = self.ollama.parse_json_response(response)
+
+            if not result:
+                return self._fallback_goal_impact(receipt, active_goals, current_savings)
+
+            return {
+                "receipt": {
+                    "vendor": receipt.get('vendor'),
+                    "amount": receipt.get('amount'),
+                    "category": receipt.get('category')
+                },
+                "active_goals_count": len(active_goals),
+                "impact_analysis": result,
+                "analyzed_at": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            logger.error(f"Error in LLM goal impact analysis: {e}")
+            return self._fallback_goal_impact(receipt, active_goals, current_savings)
+
+    def suggest_goal_aligned_spending(
+        self,
+        user_id: str,
+        planned_amount: float,
+        category: str
+    ) -> Dict:
+        """
+        Before a purchase, check if it aligns with goals using LLM
+
+        Args:
+            user_id: User ID
+            planned_amount: Amount user plans to spend
+            category: Spending category
+
+        Returns:
+            Recommendation on whether to proceed with purchase
+        """
+        logger.info(f"GoalPlannerAgent: Checking planned purchase of ${planned_amount:.2f} in {category}")
+
+        # Get user's active goals
+        goals = self.user_storage.get_all_goals(user_id)
+        active_goals = [g for g in goals if g.status in ["on_track", "behind"]]
+
+        if not active_goals:
+            return {
+                "has_goals": False,
+                "recommendation": "proceed",
+                "message": "No active goals to consider"
+            }
+
+        # Get user profile and current spending
+        profile = self.user_storage.ensure_profile_exists(user_id)
+
+        try:
+            dashboard = self.finance_agent.analyze_dashboard(user_id, "month")
+            spent_in_category = dashboard['spending_by_category'].get(category, {}).get('amount', 0)
+            budget_for_category = profile.budget_categories.get(category, 0)
+        except:
+            spent_in_category = 0
+            budget_for_category = profile.budget_categories.get(category, 0)
+
+        # Format goals
+        goals_summary = "\n".join([
+            f"- {g.name}: ${g.current_savings:.2f} / ${g.target_amount:.2f} (target: {g.target_date})"
+            for g in active_goals
+        ])
+
+        prompt = f"""The user is about to make a purchase. Should they proceed given their financial goals?
+
+Planned Purchase:
+- Amount: ${planned_amount:.2f}
+- Category: {category}
+
+Current Financial Situation:
+- Monthly Income: ${profile.salary_monthly:.2f}
+- Already spent in {category} this month: ${spent_in_category:.2f}
+- Budget for {category}: ${budget_for_category:.2f}
+
+Active Goals:
+{goals_summary}
+
+Provide a recommendation:
+1. Should they proceed, delay, or skip this purchase?
+2. Why (specific reason related to their goals)?
+3. Alternative action if they should delay/skip
+4. Impact on goals if they proceed
+
+Respond in JSON format:
+{{
+    "recommendation": "proceed/delay/skip",
+    "reasoning": "specific reason tied to goals and budget",
+    "alternative": "specific alternative action",
+    "impact_if_proceed": "what happens to goals if they buy",
+    "confidence": "high/medium/low"
+}}
+
+Return ONLY valid JSON."""
+
+        system_message = "You are a financial advisor who helps people make spending decisions aligned with their goals."
+
+        try:
+            response = self.ollama.generate(
+                prompt=prompt,
+                system_message=system_message,
+                temperature=0.3,
+                max_tokens=500
+            )
+
+            result = self.ollama.parse_json_response(response)
+
+            if not result:
+                return {"recommendation": "review", "message": "Unable to analyze at this time"}
+
+            return {
+                "planned_purchase": {
+                    "amount": planned_amount,
+                    "category": category
+                },
+                "analysis": result,
+                "analyzed_at": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            logger.error(f"Error in goal-aligned spending suggestion: {e}")
+            return {"recommendation": "review", "error": str(e)}
+
     # ==================== HELPER METHODS ====================
 
     def _determine_risk_tolerance(self, years: float) -> str:
@@ -331,6 +548,35 @@ class GoalPlannerAgent:
             return f"{years:.0f}-year horizon allows growth focus. {allocation['stocks']}% stocks maximizes long-term returns."
         else:
             return f"{years:.0f}-year horizon allows aggressive growth. {allocation['stocks']}% stocks capitalizes on long-term market growth."
+
+    def _fallback_goal_impact(self, receipt: Dict, goals: List, current_savings: float) -> Dict:
+        """Fallback goal impact analysis when LLM fails"""
+        amount = receipt.get('amount', 0)
+        category = receipt.get('category', 'other')
+
+        # Simple rule-based analysis
+        is_discretionary = category in ['dining', 'entertainment', 'shopping']
+        impact_level = "high" if amount > 100 and is_discretionary else "low"
+
+        return {
+            "receipt": {
+                "vendor": receipt.get('vendor'),
+                "amount": amount,
+                "category": category
+            },
+            "active_goals_count": len(goals),
+            "impact_analysis": {
+                "affects_goals": is_discretionary and amount > 50,
+                "most_affected_goal": goals[0].name if goals else None,
+                "delay_estimate": "Minimal delay" if amount < 100 else "Could delay goals",
+                "opportunity_cost": f"${amount:.2f} could have gone toward your goals",
+                "is_discretionary": is_discretionary,
+                "impact_level": impact_level,
+                "recommendation": "Review necessity of this expense" if is_discretionary else "Essential expense",
+                "alternative_action": "Consider saving instead" if is_discretionary else "N/A"
+            },
+            "analyzed_at": datetime.now().isoformat()
+        }
 
 
 # Global agent instance
