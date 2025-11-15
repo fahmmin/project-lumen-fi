@@ -1,9 +1,10 @@
 """
 Response Generator - Converts API Responses to Natural Language
-Creates friendly, conversational responses with suggestions
+Shows REAL data from API calls, no dummy responses
 """
 
 from typing import Dict, Any, List, Optional
+import json
 
 from backend.agents.api_registry import EndpointSchema
 from backend.utils.logger import logger
@@ -11,8 +12,8 @@ from backend.utils.logger import logger
 
 class ResponseGenerator:
     """
-    Generates natural language responses from API results
-    Creates friendly, conversational output with emojis and suggestions
+    Generates natural language responses from REAL API results
+    Extracts and displays actual data returned by endpoints
     """
 
     def __init__(self):
@@ -26,526 +27,263 @@ class ResponseGenerator:
         user_message: str
     ) -> Dict[str, Any]:
         """
-        Generate natural language response from API result
+        Generate natural language response from REAL API result
 
         Args:
             endpoint: Endpoint that was called
-            api_result: Result from API call
+            api_result: REAL result from API call
             user_message: Original user message
 
         Returns:
             Dict with: response (str), suggestions (list)
         """
-        # Log the API result for debugging
-        logger.info(f"Generating response for {endpoint.path}")
-        logger.debug(f"API result: {api_result}")
+        logger.info(f"Generating response for {endpoint.method} {endpoint.path}")
+        logger.info(f"API success: {api_result.get('success', False)}")
+        logger.info(f"API data keys: {list(api_result.get('data', {}).keys()) if isinstance(api_result.get('data'), dict) else type(api_result.get('data'))}")
 
+        # Handle errors
         if not api_result.get("success", False):
             return self._generate_error_response(api_result, endpoint)
 
-        # Generate success response based on endpoint category
-        category = endpoint.category
+        # Get REAL data from API
+        data = api_result.get("data", {})
 
-        logger.info(f"Response category: {category}")
+        # Convert REAL API data to readable format
+        response = self._format_real_data(data, endpoint)
 
-        if category == "receipt_upload":
-            return self._generate_receipt_response(api_result, endpoint)
-        elif category == "financial_goals":
-            return self._generate_goal_response(api_result, endpoint)
-        elif category == "reports":
-            return self._generate_report_response(api_result, endpoint)
-        elif category == "spending_analysis":
-            return self._generate_spending_response(api_result, endpoint)
-        elif category == "user_profile":
-            return self._generate_profile_response(api_result, endpoint)
-        elif category == "subscriptions":
-            return self._generate_subscription_response(api_result, endpoint)
-        elif category == "family_budgets":
-            return self._generate_family_response(api_result, endpoint)
-        elif category == "gamification":
-            return self._generate_gamification_response(api_result, endpoint)
-        elif category == "social_comparison":
-            return self._generate_social_response(api_result, endpoint)
+        # Generate suggestions based on endpoint category
+        suggestions = self._get_suggestions(endpoint.category)
+
+        return {
+            "response": response,
+            "suggestions": suggestions
+        }
+
+    def _format_real_data(self, data: Any, endpoint: EndpointSchema) -> str:
+        """Format REAL API data into readable text"""
+
+        if not data:
+            return "✅ Request completed successfully (no data returned)"
+
+        # Handle different data types
+        if isinstance(data, dict):
+            return self._format_dict_data(data, endpoint)
+        elif isinstance(data, list):
+            return self._format_list_data(data, endpoint)
         else:
-            return self._generate_generic_response(api_result, endpoint)
+            return f"✅ Result: {data}"
+
+    def _format_dict_data(self, data: Dict, endpoint: EndpointSchema) -> str:
+        """Format dictionary data from REAL API response"""
+        lines = []
+
+        # Add success emoji
+        lines.append("✅")
+
+        # Look for main message/summary fields first
+        if "message" in data:
+            lines.append(data["message"])
+            return " ".join(lines)
+
+        if "detail" in data:
+            lines.append(data["detail"])
+            return " ".join(lines)
+
+        # Extract ALL important fields from REAL data
+        important_fields = []
+
+        # Financial fields
+        for key in ["total_spent", "total_spending", "total", "amount", "balance", "income", "savings"]:
+            if key in data and data[key] is not None:
+                value = data[key]
+                if isinstance(value, (int, float)):
+                    important_fields.append(f"{key.replace('_', ' ').title()}: ${value:,.2f}")
+                else:
+                    important_fields.append(f"{key.replace('_', ' ').title()}: {value}")
+
+        # Count fields
+        for key in ["count", "total_count", "total_goals", "total_subscriptions", "active_goals"]:
+            if key in data and data[key] is not None:
+                important_fields.append(f"{key.replace('_', ' ').title()}: {data[key]}")
+
+        # Percentage fields
+        for key in ["percentage_used", "progress_percentage", "percentile"]:
+            if key in data and data[key] is not None:
+                important_fields.append(f"{key.replace('_', ' ').title()}: {data[key]:.1f}%")
+
+        # Score fields
+        for key in ["score", "health_score", "level", "points"]:
+            if key in data and data[key] is not None:
+                important_fields.append(f"{key.replace('_', ' ').title()}: {data[key]}")
+
+        # Budget status
+        if "budget_status" in data and isinstance(data["budget_status"], dict):
+            budget = data["budget_status"]
+            if "percentage_used" in budget:
+                important_fields.append(f"Budget Used: {budget['percentage_used']:.1f}%")
+            if "remaining" in budget:
+                important_fields.append(f"Budget Remaining: ${budget['remaining']:,.2f}")
+
+        # Spending by category
+        if "spending_by_category" in data and isinstance(data["spending_by_category"], dict):
+            categories = data["spending_by_category"]
+            if categories:
+                top_cat = max(categories.items(), key=lambda x: x[1])
+                important_fields.append(f"Top Category: {top_cat[0]} (${top_cat[1]:,.2f})")
+
+        # Goals
+        if "goals" in data and isinstance(data["goals"], list):
+            important_fields.append(f"Goals: {len(data['goals'])}")
+
+        # Subscriptions
+        if "subscriptions" in data and isinstance(data["subscriptions"], list):
+            important_fields.append(f"Subscriptions: {len(data['subscriptions'])}")
+
+        # Alerts
+        if "alerts" in data and isinstance(data["alerts"], list):
+            important_fields.append(f"Alerts: {len(data['alerts'])}")
+
+        # Insights
+        if "insights" in data and isinstance(data["insights"], list):
+            for insight in data["insights"][:2]:  # First 2 insights
+                important_fields.append(f"💡 {insight}")
+
+        # If we found important fields, use them
+        if important_fields:
+            lines.extend(important_fields)
+            return "\n".join(lines)
+
+        # Otherwise show all non-empty fields
+        for key, value in data.items():
+            if value is None or key in ["success", "status"]:
+                continue
+
+            if isinstance(value, (int, float)):
+                lines.append(f"{key.replace('_', ' ').title()}: {value}")
+            elif isinstance(value, str) and len(value) < 100:
+                lines.append(f"{key.replace('_', ' ').title()}: {value}")
+            elif isinstance(value, list):
+                lines.append(f"{key.replace('_', ' ').title()}: {len(value)} items")
+            elif isinstance(value, dict):
+                lines.append(f"{key.replace('_', ' ').title()}: {len(value)} fields")
+
+        if len(lines) > 1:
+            return "\n".join(lines)
+
+        # Last resort: show formatted JSON
+        return f"✅ Success\n{json.dumps(data, indent=2)}"
+
+    def _format_list_data(self, data: List, endpoint: EndpointSchema) -> str:
+        """Format list data from REAL API response"""
+        if not data:
+            return "✅ No items found"
+
+        lines = [f"✅ Found {len(data)} item(s)"]
+
+        # Show first few items
+        for i, item in enumerate(data[:3], 1):
+            if isinstance(item, dict):
+                # Extract key info from each item
+                item_info = []
+                for key in ["name", "title", "vendor", "category", "amount", "total"]:
+                    if key in item:
+                        item_info.append(f"{item[key]}")
+
+                if item_info:
+                    lines.append(f"{i}. {', '.join(item_info)}")
+                else:
+                    # Show first 2 fields
+                    fields = list(item.items())[:2]
+                    lines.append(f"{i}. {', '.join(f'{k}: {v}' for k, v in fields)}")
+            else:
+                lines.append(f"{i}. {item}")
+
+        if len(data) > 3:
+            lines.append(f"... and {len(data) - 3} more")
+
+        return "\n".join(lines)
 
     def _generate_error_response(
         self,
         api_result: Dict[str, Any],
         endpoint: EndpointSchema
     ) -> Dict[str, Any]:
-        """Generate error response"""
-        error_msg = api_result.get("error", "An error occurred")
+        """Generate error response from REAL API error"""
+        error_msg = api_result.get("error", "Unknown error")
         status_code = api_result.get("status_code", 500)
 
+        logger.error(f"API Error: {status_code} - {error_msg}")
+
         if status_code == 404:
-            response = f"❌ Sorry, I couldn't find what you're looking for. {error_msg}"
+            response = f"❌ Not found: {error_msg}"
         elif status_code == 400:
-            response = f"⚠️ There was an issue with the request. {error_msg}"
+            response = f"⚠️ Bad request: {error_msg}"
         elif status_code == 422:
-            response = f"⚠️ Some information is missing or invalid. {error_msg}"
+            response = f"⚠️ Validation error: {error_msg}"
+        elif status_code == 500:
+            response = f"❌ Server error: {error_msg}"
         else:
-            response = f"❌ Oops! Something went wrong. {error_msg}"
+            response = f"❌ Error ({status_code}): {error_msg}"
 
         return {
             "response": response,
             "suggestions": [
                 "Try rephrasing your request",
-                "Ask me 'what can you do?' to see my capabilities"
+                "Check if all required information is provided"
             ]
         }
 
-    def _generate_receipt_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for receipt upload"""
-        data = api_result.get("data", {})
-
-        logger.debug(f"Receipt response data: {data}")
-
-        if endpoint.method == "POST":
-            # Receipt uploaded - try multiple possible data structures
-            extracted = data.get("extracted_fields", data)
-            vendor = extracted.get("vendor", "the vendor")
-            amount = extracted.get("amount", 0)
-
-            # If amount is 0, check for alternative field names
-            if amount == 0:
-                amount = extracted.get("total", extracted.get("total_amount", 0))
-
-            response = f"✅ Great! I've added your ${amount:.2f} receipt from {vendor} to your expenses!"
-
-            suggestions = [
-                "Want to see your spending dashboard?",
-                "Check if you have any budget alerts",
-                "See your spending patterns"
-            ]
-        else:
-            response = "✅ Receipt processed successfully!"
-            suggestions = []
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_goal_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for goal operations"""
-        data = api_result.get("data", {})
-
-        if endpoint.method == "POST":
-            # Goal created
-            name = data.get("name", "your goal")
-            target = data.get("target_amount", 0)
-
-            response = f"🎯 Awesome! I've created your goal: '{name}' with a target of ${target:,.2f}!"
-
-            suggestions = [
-                "Want to see a savings plan?",
-                "Check your goal progress",
-                "View all your goals"
-            ]
-
-        elif endpoint.method == "GET" and "plan" in endpoint.path:
-            # Goal plan
-            response = "📊 Here's your personalized savings plan!"
-            suggestions = ["Track your progress", "Update your goal"]
-
-        elif endpoint.method == "GET":
-            # List goals
-            goals = data.get("goals", [])
-            total = len(goals)
-
-            response = f"🎯 You have {total} financial goal{'s' if total != 1 else ''}!"
-            suggestions = ["Create a new goal", "Check goal progress", "See dashboard"]
-
-        else:
-            response = "✅ Goal updated successfully!"
-            suggestions = []
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_report_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for report operations"""
-        data = api_result.get("data", {})
-
-        if "generate-now" in endpoint.path:
-            email = data.get("details", {}).get("email", "you")
-            report_type = data.get("details", {}).get("report_type", "financial")
-
-            response = f"📧 Perfect! I'm generating your {report_type} report now. I'll email it to {email} shortly!"
-
-            suggestions = [
+    def _get_suggestions(self, category: str) -> List[str]:
+        """Get suggestions based on endpoint category"""
+        suggestions_map = {
+            "receipt_upload": [
+                "Show my spending dashboard",
+                "Check budget alerts",
+                "See spending patterns"
+            ],
+            "financial_goals": [
+                "Show my goals",
+                "Check goal progress",
+                "Get a savings plan"
+            ],
+            "reports": [
                 "Schedule weekly reports",
                 "View report history",
-                "See your dashboard"
-            ]
-
-        elif "schedule/weekly" in endpoint.path:
-            day = data.get("schedule", {}).get("day_name", "the scheduled day")
-
-            response = f"✅ Done! You'll receive weekly financial reports every {day}!"
-
-            suggestions = [
-                "Generate a report now",
-                "View your schedule",
-                "See dashboard"
-            ]
-
-        elif "schedule/monthly" in endpoint.path:
-            day = data.get("schedule", {}).get("day_of_month", 1)
-
-            response = f"✅ Perfect! You'll receive monthly reports on day {day} of each month!"
-
-            suggestions = ["Generate a report now", "View dashboard"]
-
-        else:
-            response = "📊 Report ready!"
-            suggestions = []
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_spending_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for spending analysis"""
-        data = api_result.get("data", {})
-
-        logger.debug(f"Spending response data: {data}")
-
-        if "dashboard" in endpoint.path:
-            # Handle dashboard data - try multiple field names
-            total_spent = data.get("total_spent", data.get("total_spending", data.get("total", 0)))
-            budget_status = data.get("budget_status", {})
-
-            response = f"📊 This period you've spent ${total_spent:,.2f}."
-
-            if budget_status:
-                budget_pct = budget_status.get("percentage_used", 0)
-                response += f" You're at {budget_pct:.1f}% of your budget."
-
-            # Add spending breakdown if available
-            spending_by_category = data.get("spending_by_category", {})
-            if spending_by_category and isinstance(spending_by_category, dict):
-                top_category = max(spending_by_category.items(), key=lambda x: x[1], default=None)
-                if top_category:
-                    response += f" Your top category is {top_category[0]} at ${top_category[1]:,.2f}."
-
-            suggestions = [
-                "See spending breakdown by category",
+                "Show dashboard"
+            ],
+            "spending_analysis": [
                 "Get budget recommendations",
-                "Check for savings opportunities"
-            ]
-
-        elif "health-score" in endpoint.path:
-            score = data.get("score", data.get("health_score", 0))
-
-            if score >= 80:
-                emoji = "🌟"
-                message = "Excellent"
-            elif score >= 60:
-                emoji = "👍"
-                message = "Good"
-            elif score >= 40:
-                emoji = "😐"
-                message = "Fair"
-            else:
-                emoji = "⚠️"
-                message = "Needs improvement"
-
-            response = f"{emoji} Your financial health score is {score}/100 - {message}!"
-
-            suggestions = [
-                "Get personalized insights",
-                "See spending patterns",
-                "Check budget recommendations"
-            ]
-
-        else:
-            # Generic spending response
-            response = "✅ Here's your financial analysis!"
-
-            # Try to add some details
-            if data:
-                details = []
-                if "total" in data:
-                    details.append(f"Total: ${data['total']:,.2f}")
-                if "count" in data:
-                    details.append(f"Transactions: {data['count']}")
-                if details:
-                    response += " " + ", ".join(details)
-
-            suggestions = []
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_profile_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for profile operations"""
-        data = api_result.get("data", {})
-
-        if endpoint.method == "POST" and "salary" in endpoint.path:
-            salary = data.get("salary_monthly", 0)
-            response = f"✅ Updated! Your monthly salary is now set to ${salary:,.2f}."
-
-            suggestions = [
+                "Check savings opportunities",
+                "See spending by category"
+            ],
+            "user_profile": [
+                "Show my profile",
                 "Set up a budget",
-                "Create savings goals",
-                "View dashboard"
-            ]
-
-        elif endpoint.method == "POST":
-            # Profile created
-            response = "✅ Welcome! Your profile has been created successfully!"
-
-            suggestions = [
-                "Set your monthly salary",
-                "Create your first goal",
-                "Set up budget categories"
-            ]
-
-        else:
-            response = "✅ Profile updated!"
-            suggestions = []
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_subscription_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for subscription operations"""
-        data = api_result.get("data", {})
-
-        if "unused" in endpoint.path:
-            unused = data.get("unused_subscriptions", [])
-            potential_savings = data.get("potential_savings", 0)
-
-            count = len(unused)
-
-            if count > 0:
-                response = f"💡 I found {count} unused subscription{'s' if count != 1 else ''}! You could save ${potential_savings:,.2f}/month by canceling them."
-            else:
-                response = "✅ Great news! You're using all your subscriptions efficiently!"
-
-            suggestions = [
-                "See all subscriptions",
-                "View spending patterns",
-                "Get more savings tips"
-            ]
-
-        else:
-            subs = data.get("subscriptions", [])
-            total = data.get("total_subscriptions", len(subs))
-
-            response = f"📱 You have {total} active subscription{'s' if total != 1 else ''}."
-
-            suggestions = [
+                "Create a goal"
+            ],
+            "subscriptions": [
                 "Find unused subscriptions",
-                "See total subscription cost",
-                "View spending breakdown"
-            ]
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_family_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for family operations"""
-        data = api_result.get("data", {})
-
-        if "create" in endpoint.path:
-            family_name = data.get("name", "your family")
-            invite_code = data.get("invite_code", "")
-
-            response = f"👨‍👩‍👧‍👦 Family '{family_name}' created! Share code: {invite_code}"
-
-            suggestions = [
+                "See total subscription cost"
+            ],
+            "family_budgets": [
                 "View family dashboard",
-                "Set shared budget",
-                "Invite family members"
-            ]
-
-        elif "join" in endpoint.path:
-            family_name = data.get("name", "the family")
-
-            response = f"✅ Welcome! You've joined '{family_name}'!"
-
-            suggestions = [
-                "View family dashboard",
-                "Compare your spending",
+                "Compare my spending",
                 "See family budget"
-            ]
-
-        else:
-            response = "✅ Family operation completed!"
-            suggestions = []
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_gamification_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for gamification"""
-        data = api_result.get("data", {})
-
-        if "stats" in endpoint.path:
-            level = data.get("level", 1)
-            points = data.get("total_points", 0)
-            badges = data.get("badges_earned", 0)
-
-            response = f"🎮 You're Level {level} with {points} points! You've earned {badges} badge{'s' if badges != 1 else ''}!"
-
-            suggestions = [
-                "View leaderboard",
-                "See your badges",
-                "Check achievements"
-            ]
-
-        elif "leaderboard" in endpoint.path:
-            response = "🏆 Here's the leaderboard!"
-            suggestions = ["See your stats", "Earn more points"]
-
-        else:
-            response = "✅ Points awarded!"
-            suggestions = []
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_social_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate response for social comparison"""
-        data = api_result.get("data", {})
-
-        if "percentile" in endpoint.path:
-            percentile = data.get("overall_percentile", 50)
-
-            if percentile < 25:
-                response = f"🌟 Excellent! You're in the top 25% - you spend less than {100 - percentile:.0f}% of users!"
-            elif percentile < 50:
-                response = f"👍 Good! You spend less than {100 - percentile:.0f}% of users."
-            elif percentile < 75:
-                response = f"😐 You spend more than {percentile:.0f}% of users. There's room for improvement!"
-            else:
-                response = f"⚠️ You're in the top {100 - percentile:.0f}% of spenders. Consider cutting back!"
-
-            suggestions = [
+            ],
+            "gamification": [
+                "Show leaderboard",
+                "View my badges",
+                "Check my stats"
+            ],
+            "social_comparison": [
                 "Get savings recommendations",
-                "See category breakdown",
-                "Compare to peers"
-            ]
-
-        else:
-            response = "✅ Here's your social comparison!"
-            suggestions = []
-
-        return {
-            "response": response,
-            "suggestions": suggestions
-        }
-
-    def _generate_generic_response(
-        self,
-        api_result: Dict[str, Any],
-        endpoint: EndpointSchema
-    ) -> Dict[str, Any]:
-        """Generate generic success response with data extraction"""
-        data = api_result.get("data", {})
-
-        # Try to extract useful information from the response
-        response_parts = ["✅ Success!"]
-
-        # If data is a dict, try to extract key fields
-        if isinstance(data, dict):
-            # Look for common fields
-            if "message" in data:
-                response_parts.append(data["message"])
-            elif "success" in data and data.get("success"):
-                if "detail" in data:
-                    response_parts.append(data["detail"])
-
-            # Extract key-value pairs that look important
-            key_fields = []
-            for key, value in data.items():
-                if key in ["total", "count", "amount", "balance", "score", "level", "points", "percentile"]:
-                    key_fields.append(f"{key.title()}: {value}")
-
-            if key_fields:
-                response_parts.append("\n" + "\n".join(key_fields))
-
-            # Show summary for lists
-            if isinstance(data, list):
-                response_parts.append(f"Retrieved {len(data)} item(s)")
-            elif any(isinstance(v, list) for v in data.values()):
-                for key, value in data.items():
-                    if isinstance(value, list):
-                        response_parts.append(f"{len(value)} {key}")
-
-        # If data is a list, show count
-        elif isinstance(data, list):
-            response_parts.append(f"Retrieved {len(data)} item(s)")
-
-        # If data is a simple value, show it
-        elif data:
-            response_parts.append(f"Result: {data}")
-
-        # Build final response
-        response = " ".join(response_parts)
-
-        # Log what we're returning
-        logger.info(f"Generic response generated: {response[:100]}...")
-
-        return {
-            "response": response,
-            "suggestions": [
-                "Ask me 'what can you do?' to see my capabilities",
-                "Say 'help' for assistance"
+                "See category breakdown"
             ]
         }
+
+        return suggestions_map.get(category, [
+            "Ask 'what can you do?' to see all capabilities"
+        ])
 
 
 # Global instance
