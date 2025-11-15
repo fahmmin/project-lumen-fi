@@ -37,6 +37,12 @@ import { AuditStatusBadge } from '@/components/financial/AuditStatusBadge';
 import { AmountDisplay } from '@/components/financial/AmountDisplay';
 import { ITRChecker } from '@/components/financial/ITRChecker';
 import { GSTChecker } from '@/components/financial/GSTChecker';
+import { CreditScoreCard } from '@/components/financial/CreditScoreCard';
+import { FinancialHealthScore } from '@/components/financial/FinancialHealthScore';
+import { ExpenseCategories } from '@/components/financial/ExpenseCategories';
+import { SavingsGoals } from '@/components/financial/SavingsGoals';
+import { InvestmentPortfolio } from '@/components/financial/InvestmentPortfolio';
+import { MonthlyBudget } from '@/components/financial/MonthlyBudget';
 
 // Vibrant color palette for charts
 const CHART_COLORS = [
@@ -1019,10 +1025,28 @@ export default function Dashboard() {
                     </Card>
                 )}
 
+                {/* Financial Health & Credit Score */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <FinancialHealthScore />
+                    <CreditScoreCard />
+                </div>
+
                 {/* ITR & GST Checkers */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     <ITRChecker />
                     <GSTChecker />
+                </div>
+
+                {/* Expense Categories & Monthly Budget */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <ExpenseCategories />
+                    <MonthlyBudget />
+                </div>
+
+                {/* Savings Goals & Investment Portfolio */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                    <SavingsGoals />
+                    <InvestmentPortfolio />
                 </div>
 
                 {/* Quick Actions & Recent Activity */}

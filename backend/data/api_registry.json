@@ -426,6 +426,58 @@
       "category": "financial_goals"
     },
     {
+      "path": "/finance/analytics/{user_id}/monthly/{year}/{month}",
+      "method": "GET",
+      "name": "get_monthly_analysis",
+      "description": "Get comprehensive analysis for a specific month",
+      "summary": "Get comprehensive analysis for a specific month",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        },
+        "year": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        },
+        "month": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "finance"
+      ],
+      "category": "spending_analysis"
+    },
+    {
+      "path": "/finance/analytics/{user_id}/savings-opportunities",
+      "method": "GET",
+      "name": "get_savings_opportunities",
+      "description": "Get detailed savings opportunities by category",
+      "summary": "Get detailed savings opportunities by category",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "finance"
+      ],
+      "category": "spending_analysis"
+    },
+    {
       "path": "/reminders/{user_id}",
       "method": "GET",
       "name": "get_reminders",
@@ -970,5 +1022,5 @@
       "category": "general"
     }
   ],
-  "total_endpoints": 45
+  "total_endpoints": 47
 }
