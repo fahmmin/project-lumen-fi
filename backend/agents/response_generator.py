@@ -102,7 +102,7 @@ class ResponseGenerator:
                     important_fields.append(f"{key.replace('_', ' ').title()}: {value}")
 
         # Count fields
-        for key in ["count", "total_count", "total_goals", "total_subscriptions", "active_goals"]:
+        for key in ["count", "total_count", "total_goals", "total_subscriptions", "active_goals", "documents_indexed"]:
             if key in data and data[key] is not None:
                 important_fields.append(f"{key.replace('_', ' ').title()}: {data[key]}")
 
@@ -115,6 +115,10 @@ class ResponseGenerator:
         for key in ["score", "health_score", "level", "points"]:
             if key in data and data[key] is not None:
                 important_fields.append(f"{key.replace('_', ' ').title()}: {data[key]}")
+
+        # Status fields (for health checks, etc.)
+        if "status" in data and isinstance(data["status"], str):
+            important_fields.append(f"Status: {data['status']}")
 
         # Budget status
         if "budget_status" in data and isinstance(data["budget_status"], dict):
@@ -130,6 +134,16 @@ class ResponseGenerator:
             if categories:
                 top_cat = max(categories.items(), key=lambda x: x[1])
                 important_fields.append(f"Top Category: {top_cat[0]} (${top_cat[1]:,.2f})")
+
+        # Components (for health checks)
+        if "components" in data and isinstance(data["components"], dict):
+            for comp_name, comp_data in data["components"].items():
+                if isinstance(comp_data, dict) and "status" in comp_data:
+                    important_fields.append(f"{comp_name.replace('_', ' ').title()}: {comp_data['status']}")
+                    # Show additional component details
+                    for k, v in comp_data.items():
+                        if k != "status" and not isinstance(v, (dict, list)):
+                            important_fields.append(f"  - {k.replace('_', ' ').title()}: {v}")
 
         # Goals
         if "goals" in data and isinstance(data["goals"], list):
@@ -153,19 +167,39 @@ class ResponseGenerator:
             lines.extend(important_fields)
             return "\n".join(lines)
 
-        # Otherwise show all non-empty fields
+        # Otherwise show ALL non-empty fields (don't skip anything except None)
         for key, value in data.items():
-            if value is None or key in ["success", "status"]:
+            if value is None:
                 continue
 
-            if isinstance(value, (int, float)):
+            if isinstance(value, bool):
+                lines.append(f"{key.replace('_', ' ').title()}: {'Yes' if value else 'No'}")
+            elif isinstance(value, (int, float)):
                 lines.append(f"{key.replace('_', ' ').title()}: {value}")
-            elif isinstance(value, str) and len(value) < 100:
-                lines.append(f"{key.replace('_', ' ').title()}: {value}")
+            elif isinstance(value, str):
+                # Show all string values, truncate if very long
+                display_value = value if len(value) <= 200 else value[:200] + "..."
+                lines.append(f"{key.replace('_', ' ').title()}: {display_value}")
             elif isinstance(value, list):
-                lines.append(f"{key.replace('_', ' ').title()}: {len(value)} items")
+                if len(value) > 0:
+                    lines.append(f"{key.replace('_', ' ').title()}: {len(value)} items")
+                    # Show first few items if they're simple types
+                    for i, item in enumerate(value[:3], 1):
+                        if isinstance(item, (str, int, float, bool)):
+                            lines.append(f"  {i}. {item}")
+                        elif isinstance(item, dict):
+                            # Show first field of each dict item
+                            first_field = next(iter(item.items()), None)
+                            if first_field:
+                                lines.append(f"  {i}. {first_field[0]}: {first_field[1]}")
+                else:
+                    lines.append(f"{key.replace('_', ' ').title()}: 0 items")
             elif isinstance(value, dict):
-                lines.append(f"{key.replace('_', ' ').title()}: {len(value)} fields")
+                lines.append(f"{key.replace('_', ' ').title()}:")
+                # Show nested dict fields
+                for k, v in value.items():
+                    if not isinstance(v, (dict, list)):
+                        lines.append(f"  - {k.replace('_', ' ').title()}: {v}")
 
         if len(lines) > 1:
             return "\n".join(lines)
