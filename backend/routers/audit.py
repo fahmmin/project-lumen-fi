@@ -108,11 +108,17 @@ async def execute_audit(request: AuditRequest, user_id: Optional[str] = Query(No
 
     Args:
         request: Audit request with invoice data
-        user_id: Optional user ID for MongoDB storage
+        user_id: User ID (wallet address) - will be normalized to lowercase
 
     Returns:
         Complete audit report
     """
+    # Normalize user_id to lowercase
+    if user_id:
+        user_id = user_id.lower().strip()
+        if not user_id:
+            user_id = None
+    
     try:
         logger.info(f"Audit request received for vendor: {request.invoice_data.vendor}")
         logger.debug(f"Audit request data: vendor={request.invoice_data.vendor}, amount={request.invoice_data.amount}, category={request.invoice_data.category}")
@@ -148,11 +154,17 @@ async def quick_audit(invoice_data: InvoiceData, user_id: Optional[str] = Query(
 
     Args:
         invoice_data: Invoice data
-        user_id: Optional user ID for MongoDB storage
+        user_id: User ID (wallet address) - will be normalized to lowercase
 
     Returns:
         Quick audit results
     """
+    # Normalize user_id to lowercase
+    if user_id:
+        user_id = user_id.lower().strip()
+        if not user_id:
+            user_id = None
+    
     try:
         from backend.agents.audit_agent import get_audit_agent
         import uuid
@@ -179,18 +191,24 @@ async def quick_audit(invoice_data: InvoiceData, user_id: Optional[str] = Query(
 
         # Save to MongoDB (silently, don't expose to frontend)
         try:
+            logger.info(f"[Quick Audit] Attempting to save audit {audit_id} to MongoDB (user_id: {user_id})")
             from backend.utils.mongo_storage import get_mongo_storage
             mongo_storage = get_mongo_storage()
             amount = invoice_dict.get('amount', 0.0)
-            mongo_storage.save_audit(
+            logger.debug(f"[Quick Audit] MongoDB storage initialized, amount: {amount}")
+            success = mongo_storage.save_audit(
                 audit_id=audit_id,
                 audit_report=audit_report,
                 amount=amount,
                 user_id=user_id
             )
+            if success:
+                logger.info(f"[Quick Audit] Successfully saved audit {audit_id} to MongoDB")
+            else:
+                logger.warning(f"[Quick Audit] Failed to save audit {audit_id} to MongoDB (returned False)")
         except Exception as mongo_error:
             # Silently fail - MongoDB is optional
-            logger.debug(f"MongoDB save failed (non-critical): {mongo_error}")
+            logger.warning(f"[Quick Audit] MongoDB save failed (non-critical): {mongo_error}", exc_info=True)
 
         return {
             "status": "success",
@@ -205,6 +223,84 @@ async def quick_audit(invoice_data: InvoiceData, user_id: Optional[str] = Query(
         raise HTTPException(
             status_code=500,
             detail=f"Error during quick audit: {str(e)}"
+        )
+
+
+@router.post("/save")
+async def save_audit_to_mongodb(
+    request: Dict,
+    user_id: Optional[str] = Query(None)
+):
+    """
+    Save audit report to MongoDB (can be called from frontend)
+    
+    Args:
+        request: Request body containing audit_report dictionary
+        user_id: User ID (wallet address) - will be normalized to lowercase
+        
+    Returns:
+        Success status
+    """
+    try:
+        from backend.utils.mongo_storage import get_mongo_storage
+        
+        # Handle both direct audit_report or wrapped in request
+        audit_report = request.get("audit_report") if "audit_report" in request else request
+        
+        # Get user_id from request body if not in query params
+        if not user_id:
+            user_id = request.get("user_id")
+        
+        # Normalize user_id to lowercase
+        if user_id:
+            user_id = user_id.lower().strip()
+            if not user_id:
+                user_id = None
+        else:
+            logger.warning(f"[Audit Router /save] WARNING: user_id is missing. Audit will be saved without user association.")
+        
+        audit_id = audit_report.get("audit_id")
+        if not audit_id:
+            logger.error(f"[Audit Router /save] Missing audit_id in request: {list(request.keys())}")
+            raise HTTPException(
+                status_code=400,
+                detail="audit_id is required in audit_report"
+            )
+        
+        amount = audit_report.get("invoice_data", {}).get("amount", 0.0)
+        
+        logger.info(f"[Audit Router /save] Saving audit {audit_id} to MongoDB via /save endpoint (user_id: {user_id}, amount: {amount})")
+        logger.debug(f"[Audit Router /save] Audit report keys: {list(audit_report.keys())}")
+        
+        mongo_storage = get_mongo_storage()
+        success = mongo_storage.save_audit(
+            audit_id=audit_id,
+            audit_report=audit_report,
+            amount=amount,
+            user_id=user_id
+        )
+        
+        if success:
+            logger.info(f"[Audit Router /save] Successfully saved audit {audit_id} to MongoDB")
+            return {
+                "status": "success",
+                "message": f"Audit {audit_id} saved to MongoDB",
+                "audit_id": audit_id
+            }
+        else:
+            logger.error(f"[Audit Router /save] MongoDB save returned False for audit {audit_id}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to save audit to MongoDB (check logs for details)"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Audit Router /save] Error saving audit to MongoDB: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error saving audit to MongoDB: {str(e)}"
         )
 
 
@@ -296,17 +392,22 @@ async def get_user_audits(user_id: str, limit: int = 100):
     Get all audits for a user from MongoDB
     
     Args:
-        user_id: User ID
+        user_id: User ID (wallet address) - will be normalized to lowercase
         limit: Maximum number of audits to return
         
     Returns:
         List of user audits
     """
+    # Normalize user_id to lowercase
+    user_id = user_id.lower().strip()
+    logger.info(f"[Audit Router] Getting user audits for user_id: {user_id}, limit: {limit}")
+    
     try:
         from backend.utils.mongo_storage import get_mongo_storage
         mongo_storage = get_mongo_storage()
         
         if not mongo_storage.is_connected():
+            logger.warning(f"[Audit Router] MongoDB not connected for user_id: {user_id}")
             return {
                 "status": "success",
                 "audits": [],
@@ -315,6 +416,7 @@ async def get_user_audits(user_id: str, limit: int = 100):
             }
         
         audits = mongo_storage.get_user_audits(user_id, limit)
+        logger.info(f"[Audit Router] Found {len(audits)} audits for user_id: {user_id}")
         
         return {
             "status": "success",
@@ -335,16 +437,21 @@ async def get_user_audit_stats(user_id: str):
     Get audit statistics for a user
     
     Args:
-        user_id: User ID
+        user_id: User ID (wallet address) - will be normalized to lowercase
         
     Returns:
         Audit statistics
     """
+    # Normalize user_id to lowercase
+    user_id = user_id.lower().strip()
+    logger.info(f"[Audit Router] Getting user audit stats for user_id: {user_id}")
+    
     try:
         from backend.utils.mongo_storage import get_mongo_storage
         mongo_storage = get_mongo_storage()
         
         if not mongo_storage.is_connected():
+            logger.warning(f"[Audit Router] MongoDB not connected for user_id: {user_id}")
             return {
                 "total_audits": 0,
                 "total_amount": 0,
@@ -354,6 +461,7 @@ async def get_user_audit_stats(user_id: str):
             }
         
         stats = mongo_storage.get_audit_stats(user_id)
+        logger.info(f"[Audit Router] Stats for user_id {user_id}: total_audits={stats.get('total_audits', 0)}, total_amount={stats.get('total_amount', 0)}")
         return stats
     except Exception as e:
         logger.error(f"Error getting user audit stats: {e}")

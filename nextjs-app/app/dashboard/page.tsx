@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,17 +29,34 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
+    AreaChart,
+    Area,
 } from 'recharts';
 import { UnifiedAuditFlow } from '@/components/audit/UnifiedAuditFlow';
 import { AuditStatusBadge } from '@/components/financial/AuditStatusBadge';
 import { AmountDisplay } from '@/components/financial/AmountDisplay';
 
-const COLORS = ['#000000', '#666666', '#999999', '#CCCCCC'];
+// Vibrant color palette for charts
+const CHART_COLORS = [
+    '#3B82F6', // Blue
+    '#10B981', // Green
+    '#F59E0B', // Amber
+    '#EF4444', // Red
+    '#8B5CF6', // Purple
+    '#EC4899', // Pink
+    '#06B6D4', // Cyan
+    '#F97316', // Orange
+    '#84CC16', // Lime
+    '#6366F1', // Indigo
+];
+
+const COLORS = CHART_COLORS;
 const STATUS_COLORS: Record<string, string> = {
-    pass: '#000000',
-    warning: '#666666',
-    error: '#999999',
-    fail: '#CCCCCC',
+    pass: '#10B981',    // Green
+    warning: '#F59E0B', // Amber
+    error: '#EF4444',   // Red
+    fail: '#DC2626',    // Dark Red
+    unknown: '#6B7280', // Gray
 };
 
 interface DecryptedAudit {
@@ -49,7 +66,7 @@ interface DecryptedAudit {
 }
 
 export default function Dashboard() {
-    const { userId, isConnected } = useUser();
+    const { userId, isConnected, isLoading: userContextLoading } = useUser();
     const [stats, setStats] = useState<any>(null);
     const [recentAudits, setRecentAudits] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -61,6 +78,16 @@ export default function Dashboard() {
     const [mongoAudits, setMongoAudits] = useState<any[]>([]);
     const [mongoStats, setMongoStats] = useState<any>(null);
     const { toast } = useToast();
+
+    // Debug: Log userId changes
+    useEffect(() => {
+        console.log('[Dashboard] UserContext state changed:', {
+            userId,
+            isConnected,
+            userContextLoading,
+            timestamp: new Date().toISOString(),
+        });
+    }, [userId, isConnected, userContextLoading]);
 
     useEffect(() => {
         loadData();
@@ -74,9 +101,114 @@ export default function Dashboard() {
         }
     }, [walletAddress, contractAddress]);
 
+    // Define loadMongoAudits first using useCallback
+    const loadMongoAudits = useCallback(async () => {
+        if (!userId) {
+            console.log('[Dashboard] No userId, skipping MongoDB load');
+            return;
+        }
+
+        // Normalize userId to lowercase (wallet addresses should be lowercase)
+        const normalizedUserId = userId.toLowerCase().trim();
+        console.log('[Dashboard] Normalized userId:', normalizedUserId, '(original:', userId, ')');
+
+        try {
+            console.log('[Dashboard] Loading MongoDB audits for userId:', normalizedUserId);
+            setLoadingAudits(true);
+
+            const [auditsData, statsData] = await Promise.all([
+                auditAPI.getUserAudits(normalizedUserId, 1000).catch((err) => {
+                    console.error('[Dashboard] Error fetching user audits:', err);
+                    return { audits: [] };
+                }),
+                auditAPI.getUserAuditStats(normalizedUserId).catch((err) => {
+                    console.error('[Dashboard] Error fetching user stats:', err);
+                    return null;
+                }),
+            ]);
+
+            const audits = auditsData?.audits || [];
+            console.log('[Dashboard] Loaded MongoDB data:', {
+                auditsCount: audits.length,
+                auditsDataKeys: Object.keys(auditsData || {}),
+                statsData: statsData ? {
+                    total_audits: statsData.total_audits,
+                    total_amount: statsData.total_amount,
+                    keys: Object.keys(statsData),
+                } : null,
+            });
+
+            // Log first few audits to debug amount field
+            if (audits.length > 0) {
+                console.log('[Dashboard] Sample audits:', audits.slice(0, 3).map((a: any) => ({
+                    audit_id: a.audit_id,
+                    amount: a.amount,
+                    amountType: typeof a.amount,
+                    hasAmount: 'amount' in a,
+                    allKeys: Object.keys(a),
+                })));
+            } else {
+                console.log('[Dashboard] No audits found in response');
+            }
+
+            setMongoAudits(audits);
+            setMongoStats(statsData);
+
+            // Calculate stats purely from MongoDB audits
+            if (audits.length > 0) {
+                console.log('[Dashboard] Calling calculateStatsFromMongoAudits with', audits.length, 'audits');
+                calculateStatsFromMongoAudits(audits);
+            } else if (statsData && statsData.total_audits > 0) {
+                // Use aggregated stats if available
+                console.log('[Dashboard] Using aggregated stats:', statsData);
+                calculateStatsFromMongoStats(statsData);
+            } else {
+                // No data, reset stats
+                console.log('[Dashboard] No audit data found - audits.length:', audits.length, 'statsData:', statsData);
+                setAuditStats(null);
+            }
+        } catch (error: any) {
+            console.error('[Dashboard] Failed to load MongoDB audits:', error);
+            setAuditStats(null);
+        } finally {
+            setLoadingAudits(false);
+        }
+    }, [userId]);
+
     useEffect(() => {
+        console.log('[Dashboard] useEffect triggered - userId:', userId, 'userContextLoading:', userContextLoading);
+
+        // Wait for UserContext to finish loading before checking userId
+        if (userContextLoading) {
+            console.log('[Dashboard] UserContext still loading, waiting...');
+            return;
+        }
+
         if (userId) {
+            console.log('[Dashboard] userId exists, calling loadMongoAudits');
             loadMongoAudits();
+        } else {
+            console.log('[Dashboard] No userId after UserContext loaded, not loading MongoDB audits');
+        }
+    }, [userId, userContextLoading, loadMongoAudits]);
+
+    // Listen for audit saved events to refresh data
+    useEffect(() => {
+        const handleAuditSaved = () => {
+            console.log('[Dashboard] Audit saved event received, refreshing MongoDB data...');
+            if (userId) {
+                // Small delay to ensure MongoDB has finished saving
+                setTimeout(() => {
+                    loadMongoAudits();
+                }, 500);
+            }
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('auditSaved', handleAuditSaved);
+            return () => {
+                window.removeEventListener('auditSaved', handleAuditSaved);
+            };
         }
     }, [userId]);
 
@@ -306,78 +438,121 @@ export default function Dashboard() {
         return weeks;
     };
 
-    const loadMongoAudits = async () => {
-        if (!userId) return;
-        try {
-            const [auditsData, statsData] = await Promise.all([
-                auditAPI.getUserAudits(userId, 100).catch(() => ({ audits: [] })),
-                auditAPI.getUserAuditStats(userId).catch(() => null),
-            ]);
-            setMongoAudits(auditsData.audits || []);
-            setMongoStats(statsData);
+    const calculateStatsFromMongoAudits = (audits: any[]) => {
+        console.log('[Dashboard] Calculating stats from MongoDB audits:', audits.length, 'audits');
 
-            // Merge MongoDB data with blockchain data for stats
-            // Use setTimeout to ensure state is updated
-            setTimeout(() => {
-                if (auditsData.audits && auditsData.audits.length > 0) {
-                    mergeAuditData();
-                } else if (decryptedAudits.length > 0) {
-                    // If no MongoDB audits but have blockchain audits, use those
-                    calculateAuditStats(decryptedAudits);
-                } else if (statsData && statsData.total_audits > 0) {
-                    // Use MongoDB stats directly if available
-                    const mongoStatusDistribution = Object.entries(statsData.by_status || {}).map(([name, value]: [string, any]) => ({
-                        name: name.charAt(0).toUpperCase() + name.slice(1),
-                        value,
-                        color: STATUS_COLORS[name.toLowerCase()] || '#CCCCCC',
-                    }));
+        // Status distribution
+        const statusCounts: Record<string, number> = {};
+        const categorySpending: Record<string, { amount: number; count: number }> = {};
+        const weeklyData: Record<string, { audits: number; documents: number }> = {};
+        let totalAmount = 0;
+        let passCount = 0;
 
-                    const mongoCategoryData = Object.entries(statsData.by_category || {}).map(([category, data]: [string, any]) => ({
-                        category,
-                        amount: data.total_amount || 0,
-                        count: data.count || 0,
-                    })).sort((a, b) => b.amount - a.amount).slice(0, 10);
+        audits.forEach((audit: any, index: number) => {
+            // Use amount field directly from MongoDB document
+            const amount = audit.amount || 0;
+            console.log(`[Dashboard] Audit ${index + 1}: audit_id=${audit.audit_id}, amount=${amount}, type=${typeof amount}`);
+            totalAmount += amount;
 
-                    setAuditStats({
-                        statusDistribution: mongoStatusDistribution,
-                        categoryData: mongoCategoryData,
-                        auditTrendData: auditStats?.auditTrendData || [],
-                        successRate: statsData.by_status?.pass ? Math.round((statsData.by_status.pass / statsData.total_audits) * 100) : 0,
-                        totalAudits: statsData.total_audits,
-                        totalAmount: statsData.total_amount,
-                    });
-                }
-            }, 100);
-        } catch (error: any) {
-            console.error('Failed to load MongoDB audits:', error);
-        }
-    };
+            // Count statuses (from audit_report or status field)
+            const status = audit.status || audit.audit_report?.overall_status || 'unknown';
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+            if (status === 'pass') passCount++;
 
-    const mergeAuditData = () => {
-        // Combine blockchain and MongoDB audits for comprehensive stats
-        const allAudits = [...decryptedAudits];
+            // Category spending (from audit_report or category field)
+            const category = audit.category || audit.audit_report?.invoice_data?.category || 'Uncategorized';
+            if (!categorySpending[category]) {
+                categorySpending[category] = { amount: 0, count: 0 };
+            }
+            categorySpending[category].amount += amount;
+            categorySpending[category].count += 1;
 
-        // Add MongoDB audits as DecryptedAudit format
-        const currentMongoAudits = mongoAudits.length > 0 ? mongoAudits : [];
-        currentMongoAudits.forEach((mongoAudit: any) => {
-            const auditReport = mongoAudit.audit_report || {};
-            allAudits.push({
-                auditRecord: {
-                    auditId: mongoAudit.audit_id,
-                    pinataLink: '',
-                    hash: '',
-                    storedBy: mongoAudit.user_id || '',
-                    timestamp: BigInt(Math.floor(new Date(mongoAudit.timestamp).getTime() / 1000)),
-                },
-                decryptedData: auditReport,
-                timestamp: new Date(mongoAudit.timestamp),
-            });
+            // Weekly data
+            const timestamp = audit.timestamp ? new Date(audit.timestamp) : new Date();
+            const weekKey = getWeekKey(timestamp);
+            if (!weeklyData[weekKey]) {
+                weeklyData[weekKey] = { audits: 0, documents: 0 };
+            }
+            weeklyData[weekKey].audits += 1;
         });
 
-        // Recalculate stats with merged data
-        if (allAudits.length > 0) {
-            calculateAuditStats(allAudits);
-        }
+        // Convert to chart format
+        const statusDistribution = Object.entries(statusCounts).map(([name, value]) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            value,
+            color: STATUS_COLORS[name.toLowerCase()] || '#CCCCCC',
+        }));
+
+        const categoryData = Object.entries(categorySpending)
+            .map(([category, data]) => ({
+                category,
+                amount: data.amount,
+                count: data.count,
+            }))
+            .sort((a, b) => b.amount - a.amount)
+            .slice(0, 10);
+
+        // Get last 4 weeks
+        const weeks = getLastNWeeks(4);
+        const auditTrendData = weeks.map(week => ({
+            name: week.label,
+            audits: weeklyData[week.key]?.audits || 0,
+            documents: weeklyData[week.key]?.documents || 0,
+        }));
+
+        const successRate = audits.length > 0 ? Math.round((passCount / audits.length) * 100) : 0;
+
+        console.log('[Dashboard] Calculated stats:', {
+            totalAudits: audits.length,
+            totalAmount,
+            successRate,
+            statusDistribution: statusCounts,
+        });
+
+        const newStats = {
+            statusDistribution,
+            categoryData,
+            auditTrendData,
+            successRate,
+            totalAudits: audits.length,
+            totalAmount,
+        };
+
+        console.log('[Dashboard] Setting auditStats to:', newStats);
+        setAuditStats(newStats);
+        console.log('[Dashboard] auditStats set complete');
+    };
+
+    const calculateStatsFromMongoStats = (statsData: any) => {
+        // Use aggregated stats from MongoDB
+        const statusDistribution = Object.entries(statsData.by_status || {}).map(([name, value]: [string, any]) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            value,
+            color: STATUS_COLORS[name.toLowerCase()] || '#CCCCCC',
+        }));
+
+        const categoryData = Object.entries(statsData.by_category || {}).map(([category, data]: [string, any]) => ({
+            category,
+            amount: data.total_amount || 0,
+            count: data.count || 0,
+        })).sort((a, b) => b.amount - a.amount).slice(0, 10);
+
+        const successRate = statsData.by_status?.pass
+            ? Math.round((statsData.by_status.pass / statsData.total_audits) * 100)
+            : 0;
+
+        setAuditStats({
+            statusDistribution,
+            categoryData,
+            auditTrendData: auditStats?.auditTrendData || getLastNWeeks(4).map(week => ({
+                name: week.label,
+                audits: 0,
+                documents: 0,
+            })),
+            successRate,
+            totalAudits: statsData.total_audits || 0,
+            totalAmount: statsData.total_amount || 0,
+        });
     };
 
     const loadData = async () => {
@@ -509,7 +684,7 @@ export default function Dashboard() {
                             ) : (
                                 <>
                                     <div className="text-xl sm:text-2xl font-bold tracking-tight">
-                                        {(auditStats?.totalAudits || 0) + (mongoStats?.total_audits || 0) || decryptedAudits.length || mongoAudits.length || 0}
+                                        {auditStats?.totalAudits || mongoStats?.total_audits || mongoAudits.length || 0}
                                     </div>
                                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-1 leading-tight">
                                         {userId ? 'Total audits' : 'Connect wallet'}
@@ -564,7 +739,16 @@ export default function Dashboard() {
                             ) : (
                                 <>
                                     <div className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">
-                                        ${((auditStats?.totalAmount || 0) + (mongoStats?.total_amount || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) || '0'}
+                                        ${(() => {
+                                            const amount = auditStats?.totalAmount ?? mongoStats?.total_amount ?? 0;
+                                            console.log('auditStats', auditStats);
+                                            console.log('[Dashboard] Total Amount Display:', {
+                                                auditStats_totalAmount: auditStats?.totalAmount,
+                                                mongoStats_total_amount: mongoStats?.total_amount,
+                                                finalAmount: amount,
+                                            });
+                                            return amount;
+                                        })().toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                     </div>
                                     <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mt-1">Audited invoices</p>
                                 </>
@@ -583,30 +767,54 @@ export default function Dashboard() {
                         </CardHeader>
                         <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                             <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
-                                <LineChart data={auditTrendData}>
-                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-800" />
-                                    <XAxis dataKey="name" className="text-xs" />
-                                    <YAxis className="text-xs" />
+                                <LineChart data={auditTrendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+                                    <XAxis
+                                        dataKey="name"
+                                        className="text-xs"
+                                        stroke="#6b7280"
+                                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                                    />
+                                    <YAxis
+                                        className="text-xs"
+                                        stroke="#6b7280"
+                                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                                    />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: 'var(--background)',
-                                            border: '1px solid var(--border)',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '8px',
+                                            padding: '12px',
+                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                                         }}
+                                        cursor={{ stroke: '#3B82F6', strokeWidth: 2, strokeDasharray: '5 5' }}
                                     />
-                                    <Legend />
+                                    <Legend
+                                        wrapperStyle={{ paddingTop: '20px' }}
+                                        iconType="line"
+                                    />
                                     <Line
                                         type="monotone"
                                         dataKey="audits"
-                                        stroke="#000000"
-                                        strokeWidth={2}
+                                        stroke="#3B82F6"
+                                        strokeWidth={3}
                                         name="Audits"
+                                        dot={{ fill: '#3B82F6', r: 5, strokeWidth: 2, stroke: '#fff' }}
+                                        activeDot={{ r: 8, fill: '#2563EB', stroke: '#fff', strokeWidth: 2 }}
+                                        animationDuration={1000}
+                                        animationEasing="ease-out"
                                     />
                                     <Line
                                         type="monotone"
                                         dataKey="documents"
-                                        stroke="#666666"
-                                        strokeWidth={2}
+                                        stroke="#10B981"
+                                        strokeWidth={3}
                                         name="Documents"
+                                        dot={{ fill: '#10B981', r: 5, strokeWidth: 2, stroke: '#fff' }}
+                                        activeDot={{ r: 8, fill: '#059669', stroke: '#fff', strokeWidth: 2 }}
+                                        animationDuration={1000}
+                                        animationEasing="ease-out"
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
@@ -629,15 +837,30 @@ export default function Dashboard() {
                                             cy="50%"
                                             labelLine={false}
                                             label={({ name, percent }) => `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`}
-                                            outerRadius={80}
+                                            outerRadius={100}
+                                            innerRadius={40}
                                             fill="#8884d8"
                                             dataKey="value"
+                                            animationDuration={1000}
+                                            paddingAngle={2}
                                         >
                                             {statusDistribution.map((entry: any, index: number) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={entry.color}
+                                                    stroke={entry.color}
+                                                    strokeWidth={2}
+                                                />
                                             ))}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip
+                                            contentStyle={{
+                                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                                border: '1px solid #e5e7eb',
+                                                borderRadius: '8px',
+                                                padding: '8px',
+                                            }}
+                                        />
                                     </PieChart>
                                 </ResponsiveContainer>
                             ) : (
@@ -649,7 +872,7 @@ export default function Dashboard() {
                     </Card>
                 </div>
 
-                {/* Category Spending */}
+                {/* Category Spending - Bar Chart */}
                 <Card className="border-gray-200 dark:border-gray-800">
                     <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
                         <CardTitle className="text-base sm:text-lg">Category Spending Analysis</CardTitle>
@@ -658,19 +881,74 @@ export default function Dashboard() {
                     <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                         {categoryData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
-                                <BarChart data={categoryData}>
-                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-800" />
-                                    <XAxis dataKey="category" className="text-xs" angle={-45} textAnchor="end" height={100} />
-                                    <YAxis className="text-xs" />
+                                <BarChart data={categoryData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+                                    <XAxis
+                                        dataKey="category"
+                                        className="text-xs"
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={100}
+                                        stroke="#6b7280"
+                                        tick={{ fill: '#6b7280', fontSize: 11 }}
+                                    />
+                                    <YAxis
+                                        className="text-xs"
+                                        stroke="#6b7280"
+                                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                                    />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: 'var(--background)',
-                                            border: '1px solid var(--border)',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '8px',
+                                            padding: '12px',
+                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                        }}
+                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                                        formatter={(value: any, name: string) => {
+                                            if (name === 'Amount ($)') {
+                                                return [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, name];
+                                            }
+                                            return [value, name];
                                         }}
                                     />
-                                    <Legend />
-                                    <Bar dataKey="amount" fill="#000000" name="Amount ($)" />
-                                    <Bar dataKey="count" fill="#666666" name="Count" />
+                                    <Legend
+                                        wrapperStyle={{ paddingTop: '20px' }}
+                                    />
+                                    <Bar
+                                        dataKey="amount"
+                                        name="Amount ($)"
+                                        radius={[8, 8, 0, 0]}
+                                        animationDuration={1000}
+                                        animationEasing="ease-out"
+                                    >
+                                        {categoryData.map((entry: any, index: number) => (
+                                            <Cell
+                                                key={`cell-amount-${index}`}
+                                                fill={CHART_COLORS[index % CHART_COLORS.length]}
+                                                stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                                                strokeWidth={1}
+                                            />
+                                        ))}
+                                    </Bar>
+                                    <Bar
+                                        dataKey="count"
+                                        name="Count"
+                                        radius={[8, 8, 0, 0]}
+                                        animationDuration={1000}
+                                        animationEasing="ease-out"
+                                    >
+                                        {categoryData.map((entry: any, index: number) => (
+                                            <Cell
+                                                key={`cell-count-${index}`}
+                                                fill={CHART_COLORS[(index + 5) % CHART_COLORS.length]}
+                                                opacity={0.7}
+                                                stroke={CHART_COLORS[(index + 5) % CHART_COLORS.length]}
+                                                strokeWidth={1}
+                                            />
+                                        ))}
+                                    </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
@@ -680,6 +958,64 @@ export default function Dashboard() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Spending Trend - Area Chart */}
+                {categoryData.length > 0 && (
+                    <Card className="border-gray-200 dark:border-gray-800">
+                        <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+                            <CardTitle className="text-base sm:text-lg">Spending Trend by Category</CardTitle>
+                            <CardDescription className="text-xs sm:text-sm">Visual spending distribution over categories</CardDescription>
+                        </CardHeader>
+                        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+                            <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
+                                <AreaChart data={categoryData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        {categoryData.map((entry: any, index: number) => (
+                                            <linearGradient key={`gradient-${index}`} id={`colorAmount${index}`} x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={CHART_COLORS[index % CHART_COLORS.length]} stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor={CHART_COLORS[index % CHART_COLORS.length]} stopOpacity={0.1} />
+                                            </linearGradient>
+                                        ))}
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+                                    <XAxis
+                                        dataKey="category"
+                                        className="text-xs"
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={100}
+                                        stroke="#6b7280"
+                                        tick={{ fill: '#6b7280', fontSize: 11 }}
+                                    />
+                                    <YAxis
+                                        className="text-xs"
+                                        stroke="#6b7280"
+                                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '8px',
+                                            padding: '12px',
+                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                        }}
+                                        formatter={(value: any) => [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Amount']}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="amount"
+                                        stroke="#3B82F6"
+                                        strokeWidth={3}
+                                        fill="url(#colorAmount0)"
+                                        animationDuration={1000}
+                                        animationEasing="ease-out"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Quick Actions & Recent Activity */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">

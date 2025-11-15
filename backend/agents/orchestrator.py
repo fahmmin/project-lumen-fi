@@ -134,18 +134,24 @@ class AuditOrchestrator:
 
             # Save to MongoDB (silently, don't fail if MongoDB unavailable)
             try:
+                logger.info(f"[Orchestrator] Attempting to save audit {audit_id} to MongoDB (user_id: {user_id})")
                 from backend.utils.mongo_storage import get_mongo_storage
                 mongo_storage = get_mongo_storage()
                 amount = invoice_data.get('amount', 0.0)
-                mongo_storage.save_audit(
+                logger.debug(f"[Orchestrator] MongoDB storage initialized, amount: {amount}")
+                success = mongo_storage.save_audit(
                     audit_id=audit_id,
                     audit_report=audit_report,
                     amount=amount,
                     user_id=user_id
                 )
+                if success:
+                    logger.info(f"[Orchestrator] Successfully saved audit {audit_id} to MongoDB")
+                else:
+                    logger.warning(f"[Orchestrator] Failed to save audit {audit_id} to MongoDB (returned False)")
             except Exception as mongo_error:
                 # Silently fail - MongoDB is optional
-                logger.debug(f"MongoDB save failed (non-critical): {mongo_error}")
+                logger.warning(f"[Orchestrator] MongoDB save failed (non-critical): {mongo_error}", exc_info=True)
 
         except Exception as e:
             logger.error(f"Error during audit {audit_id}: {e}", exc_info=True)
@@ -203,18 +209,24 @@ class AuditOrchestrator:
 
             # Save to MongoDB (silently, don't fail if MongoDB unavailable)
             try:
+                logger.info(f"[Orchestrator] Attempting to save audit {audit_id} to MongoDB (user_id: {user_id})")
                 from backend.utils.mongo_storage import get_mongo_storage
                 mongo_storage = get_mongo_storage()
                 amount = invoice_data.get('amount', 0.0)
-                mongo_storage.save_audit(
+                logger.debug(f"[Orchestrator] MongoDB storage initialized, amount: {amount}")
+                success = mongo_storage.save_audit(
                     audit_id=audit_id,
                     audit_report=audit_report,
                     amount=amount,
                     user_id=user_id
                 )
+                if success:
+                    logger.info(f"[Orchestrator] Successfully saved audit {audit_id} to MongoDB")
+                else:
+                    logger.warning(f"[Orchestrator] Failed to save audit {audit_id} to MongoDB (returned False)")
             except Exception as mongo_error:
                 # Silently fail - MongoDB is optional
-                logger.debug(f"MongoDB save failed (non-critical): {mongo_error}")
+                logger.warning(f"[Orchestrator] MongoDB save failed (non-critical): {mongo_error}", exc_info=True)
 
         except Exception as e:
             logger.error(f"Error during partial audit: {e}", exc_info=True)

@@ -75,22 +75,65 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const checkConnection = async () => {
         try {
             setIsLoading(true);
-            const address = await web3Service.getAddress();
-            if (address) {
-                setWalletAddress(address);
-                // Save to localStorage for persistence
-                localStorage.setItem('walletAddress', address);
+
+            // First, check localStorage for saved address
+            const savedAddress = localStorage.getItem('walletAddress');
+
+            // Try to get address from MetaMask (silent check - doesn't require approval)
+            if (typeof window !== 'undefined' && (window as any).ethereum) {
+                try {
+                    // Use eth_accounts which doesn't require user approval if previously connected
+                    const accounts = await (window as any).ethereum.request({
+                        method: 'eth_accounts'
+                    });
+
+                    if (accounts && accounts.length > 0) {
+                        const currentAddress = accounts[0];
+                        // If we have a saved address, verify it matches
+                        if (savedAddress && savedAddress.toLowerCase() === currentAddress.toLowerCase()) {
+                            // Restore connection
+                            setWalletAddress(currentAddress);
+                            // Reinitialize web3Service provider
+                            try {
+                                await web3Service.ensureSepoliaNetwork();
+                            } catch (networkError) {
+                                // Network switch failed, but we still have the address
+                                console.log('Network switch failed, but address is available:', networkError);
+                            }
+                        } else if (!savedAddress) {
+                            // No saved address but MetaMask has accounts - use the first one
+                            setWalletAddress(currentAddress);
+                            localStorage.setItem('walletAddress', currentAddress);
+                        } else {
+                            // Saved address doesn't match - user switched accounts
+                            setWalletAddress(currentAddress);
+                            localStorage.setItem('walletAddress', currentAddress);
+                        }
+                    } else if (savedAddress) {
+                        // No accounts from MetaMask but we have saved address - clear it
+                        localStorage.removeItem('walletAddress');
+                        setWalletAddress(null);
+                    }
+                } catch (error) {
+                    console.log('Error checking MetaMask accounts:', error);
+                    // If eth_accounts fails, clear saved address
+                    if (savedAddress) {
+                        localStorage.removeItem('walletAddress');
+                        setWalletAddress(null);
+                    }
+                }
             } else {
-                // Check localStorage for saved address
-                const savedAddress = localStorage.getItem('walletAddress');
+                // MetaMask not available
                 if (savedAddress) {
-                    // Address saved but not connected - clear it
                     localStorage.removeItem('walletAddress');
+                    setWalletAddress(null);
                 }
             }
         } catch (error) {
-            // Not connected
+            console.error('Error in checkConnection:', error);
+            // On error, clear saved address
             localStorage.removeItem('walletAddress');
+            setWalletAddress(null);
         } finally {
             setIsLoading(false);
         }

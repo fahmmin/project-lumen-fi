@@ -86,6 +86,34 @@ class Web3Service {
     }
 
     /**
+     * Ensure Sepolia network is active
+     */
+    async ensureSepoliaNetwork(): Promise<void> {
+        if (typeof window === 'undefined' || !window.ethereum) {
+            throw new Error('MetaMask is not installed.');
+        }
+
+        // Initialize provider if not already initialized
+        if (!this.provider) {
+            this.provider = new ethers.BrowserProvider(window.ethereum);
+        }
+
+        // Check if on Sepolia, if not, switch
+        const isSepolia = await this.isSepoliaNetwork();
+        if (!isSepolia) {
+            await this.switchToSepolia();
+            // Reinitialize provider after network switch
+            if (window.ethereum) {
+                this.provider = new ethers.BrowserProvider(window.ethereum);
+                this.signer = await this.provider.getSigner();
+            }
+        } else if (!this.signer) {
+            // If we're on Sepolia but don't have a signer, initialize it
+            this.signer = await this.provider.getSigner();
+        }
+    }
+
+    /**
      * Connect to MetaMask wallet and ensure Sepolia network
      */
     async connectWallet(): Promise<string> {
@@ -101,14 +129,8 @@ class Web3Service {
             this.signer = await this.provider.getSigner();
             const address = await this.signer.getAddress();
 
-            // Check if on Sepolia, if not, switch
-            const isSepolia = await this.isSepoliaNetwork();
-            if (!isSepolia) {
-                await this.switchToSepolia();
-                // Reinitialize provider after network switch
-                this.provider = new ethers.BrowserProvider(window.ethereum);
-                this.signer = await this.provider.getSigner();
-            }
+            // Ensure we're on Sepolia network
+            await this.ensureSepoliaNetwork();
 
             return address;
         } catch (error: any) {
@@ -124,6 +146,29 @@ class Web3Service {
      */
     async getAddress(): Promise<string | null> {
         if (!this.signer) {
+            // Try to get address from provider if available
+            if (this.provider) {
+                try {
+                    const signer = await this.provider.getSigner();
+                    return await signer.getAddress();
+                } catch {
+                    return null;
+                }
+            }
+            // Try to get accounts from MetaMask without requesting (silent check)
+            if (typeof window !== 'undefined' && window.ethereum) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts && accounts.length > 0) {
+                        // Initialize provider and signer if we have accounts
+                        this.provider = new ethers.BrowserProvider(window.ethereum);
+                        this.signer = await this.provider.getSigner();
+                        return accounts[0];
+                    }
+                } catch {
+                    return null;
+                }
+            }
             return null;
         }
         try {
@@ -281,23 +326,6 @@ class Web3Service {
             return await this.provider.getNetwork();
         } catch {
             return null;
-        }
-    }
-
-    /**
-     * Ensure connected to Sepolia network
-     */
-    async ensureSepoliaNetwork(): Promise<void> {
-        if (typeof window === 'undefined' || !window.ethereum) {
-            throw new Error('MetaMask is not installed.');
-        }
-
-        const isSepolia = await this.isSepoliaNetwork();
-        if (!isSepolia) {
-            await this.switchToSepolia();
-            // Reinitialize provider after network switch
-            this.provider = new ethers.BrowserProvider(window.ethereum);
-            this.signer = await this.provider.getSigner();
         }
     }
 }

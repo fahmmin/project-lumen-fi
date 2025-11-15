@@ -222,12 +222,26 @@ export const auditAPI = {
      */
     async getUserAudits(userId: string, limit: number = 100): Promise<any> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/audit/user/${userId}/audits`, {
+            console.log('[API] getUserAudits called with userId:', userId, 'limit:', limit);
+            const url = `${API_BASE_URL}/audit/user/${userId}/audits`;
+            console.log('[API] Request URL:', url);
+            const response = await axios.get(url, {
                 params: { limit },
+            });
+            console.log('[API] getUserAudits response:', {
+                status: response.status,
+                dataKeys: Object.keys(response.data || {}),
+                auditsCount: response.data?.audits?.length || 0,
             });
             return response.data;
         } catch (error) {
+            console.error('[API] getUserAudits error:', error);
             if (axios.isAxiosError(error)) {
+                console.error('[API] Error details:', {
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    data: error.response?.data,
+                });
                 throw new Error(
                     error.response?.data?.detail || 'Failed to fetch user audits'
                 );
@@ -241,12 +255,56 @@ export const auditAPI = {
      */
     async getUserAuditStats(userId: string): Promise<any> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/audit/user/${userId}/stats`);
+            console.log('[API] getUserAuditStats called with userId:', userId);
+            const url = `${API_BASE_URL}/audit/user/${userId}/stats`;
+            console.log('[API] Request URL:', url);
+            const response = await axios.get(url);
+            console.log('[API] getUserAuditStats response:', {
+                status: response.status,
+                data: response.data,
+            });
             return response.data;
         } catch (error) {
+            console.error('[API] getUserAuditStats error:', error);
             if (axios.isAxiosError(error)) {
+                console.error('[API] Error details:', {
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    data: error.response?.data,
+                });
                 throw new Error(
                     error.response?.data?.detail || 'Failed to fetch audit stats'
+                );
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Save audit to MongoDB
+     */
+    async saveAuditToMongoDB(auditReport: AuditResponse, userId?: string): Promise<any> {
+        try {
+            const params = userId ? { user_id: userId } : {};
+            console.log('[API] Saving audit to MongoDB:', {
+                audit_id: auditReport.audit_id,
+                userId,
+                hasAuditReport: !!auditReport
+            });
+
+            const response = await axios.post(
+                `${API_BASE_URL}/audit/save`,
+                auditReport,
+                { params }
+            );
+
+            console.log('[API] MongoDB save response:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('[API] Error saving audit to MongoDB:', error);
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to save audit to MongoDB'
                 );
             }
             throw error;

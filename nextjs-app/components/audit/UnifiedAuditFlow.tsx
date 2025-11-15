@@ -188,7 +188,12 @@ export function UnifiedAuditFlow() {
 
             let audit;
             try {
-                audit = await auditAPI.executeAudit(invoiceData, userId || undefined);
+                // Ensure userId is normalized (lowercase) before passing to API
+                const normalizedUserId = userId ? userId.toLowerCase().trim() : undefined;
+                if (!normalizedUserId) {
+                    console.warn('[UnifiedAuditFlow] No userId available - audit will be saved without user association');
+                }
+                audit = await auditAPI.executeAudit(invoiceData, normalizedUserId);
                 setAuditResult(audit);
                 toast({
                     title: 'Audit completed',
@@ -433,13 +438,54 @@ export function UnifiedAuditFlow() {
 
                             <div className="flex gap-4">
                                 <Button
-                                    onClick={() => {
-                                        if (auditResult?.audit_id) {
-                                            router.push(`/store?auditId=${auditResult.audit_id}`);
-                                        } else {
-                                            router.push('/store');
+                                    onClick={async () => {
+                                        try {
+                                            // Save to MongoDB asynchronously
+                                            // Ensure userId is normalized (lowercase) before passing to API
+                                            const normalizedUserId = userId ? userId.toLowerCase().trim() : undefined;
+                                            if (auditResult && normalizedUserId) {
+                                                console.log('[UnifiedAuditFlow] Saving audit to MongoDB before blockchain storage:', {
+                                                    audit_id: auditResult.audit_id,
+                                                    userId: normalizedUserId
+                                                });
+
+                                                // Fire and forget - don't block navigation
+                                                auditAPI.saveAuditToMongoDB(auditResult, normalizedUserId)
+                                                    .then((result) => {
+                                                        console.log('[UnifiedAuditFlow] MongoDB save successful:', result);
+                                                        toast({
+                                                            title: 'Saved to MongoDB',
+                                                            description: 'Audit saved to database',
+                                                            variant: 'default',
+                                                        });
+                                                        // Trigger dashboard refresh by dispatching custom event
+                                                        if (typeof window !== 'undefined') {
+                                                            window.dispatchEvent(new CustomEvent('auditSaved', { detail: { auditId: auditResult.audit_id } }));
+                                                        }
+                                                    })
+                                                    .catch((error) => {
+                                                        console.error('[UnifiedAuditFlow] MongoDB save failed:', error);
+                                                        // Don't show error toast - MongoDB is optional
+                                                    });
+                                            }
+
+                                            // Navigate to store page
+                                            if (auditResult?.audit_id) {
+                                                router.push(`/store?auditId=${auditResult.audit_id}`);
+                                            } else {
+                                                router.push('/store');
+                                            }
+                                            setOpen(false);
+                                        } catch (error) {
+                                            console.error('[UnifiedAuditFlow] Error in Store on Blockchain:', error);
+                                            // Still navigate even if MongoDB save fails
+                                            if (auditResult?.audit_id) {
+                                                router.push(`/store?auditId=${auditResult.audit_id}`);
+                                            } else {
+                                                router.push('/store');
+                                            }
+                                            setOpen(false);
                                         }
-                                        setOpen(false);
                                     }}
                                     className="flex-1"
                                 >

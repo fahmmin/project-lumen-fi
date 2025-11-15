@@ -116,9 +116,15 @@ export default function AuditPage() {
 
             await simulateProgress();
 
+            // Ensure userId is normalized (lowercase) before passing to API
+            const normalizedUserId = userId ? userId.toLowerCase().trim() : undefined;
+            if (!normalizedUserId) {
+                console.warn('[AuditPage] No userId available - audit will be saved without user association');
+            }
+
             const result = auditType === 'full'
-                ? await auditAPI.executeAudit(sanitizedFormData, userId || undefined)
-                : await auditAPI.quickAudit(sanitizedFormData, userId || undefined);
+                ? await auditAPI.executeAudit(sanitizedFormData, normalizedUserId)
+                : await auditAPI.quickAudit(sanitizedFormData, normalizedUserId);
 
             setAuditResult(result as AuditResponse);
             toast({
