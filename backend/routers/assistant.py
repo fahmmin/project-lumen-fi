@@ -74,10 +74,17 @@ async def chat(request: ChatRequest):
             content=request.message
         )
 
-        # Build user context
+        # Get conversation history for context
+        conversation_history = conv_manager.get_conversation_history(
+            session_id=session.session_id,
+            last_n=10  # Last 10 messages for context
+        )
+
+        # Build user context with conversation history
         user_context = {
             "user_id": request.user_id,
             "email": request.email,
+            "conversation_history": conversation_history,
             **session.context
         }
 
@@ -94,8 +101,11 @@ async def chat(request: ChatRequest):
         if intent_agent.is_conversational(request.message):
             logger.info("Message is conversational - generating LLM response")
 
-            # Generate conversational response
-            conversational_response = intent_agent.generate_conversational_response(request.message)
+            # Generate conversational response with history
+            conversational_response = intent_agent.generate_conversational_response(
+                user_message=request.message,
+                conversation_history=conversation_history
+            )
 
             # Add to conversation history
             conv_manager.add_message(
