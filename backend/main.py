@@ -11,8 +11,9 @@ from fastapi import status
 import time
 
 from backend.config import settings
-from backend.routers import ingest, audit, memory, users, goals, personal_finance, reminders, subscriptions, forensics, gamification, websocket, voice, family, social, reports, email_integration
+from backend.routers import ingest, audit, memory, users, goals, personal_finance, reminders, subscriptions, forensics, gamification, websocket, voice, family, social, reports, email_integration, scheduled_reports
 from backend.utils.logger import logger
+from backend.utils.report_scheduler import get_report_scheduler
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -151,6 +152,7 @@ app.include_router(family.router)  # Phase 2: Family budgets
 app.include_router(social.router)  # Phase 2: Social comparison
 app.include_router(reports.router)  # Phase 2: PDF reports
 app.include_router(email_integration.router)  # Phase 2: Email parsing
+app.include_router(scheduled_reports.router)  # Phase 2: Scheduled reports
 
 
 # Root endpoint
@@ -180,7 +182,8 @@ async def root():
             "family": "/family",
             "social": "/social",
             "reports": "/reports",
-            "email": "/email"
+            "email": "/email",
+            "scheduled_reports": "/scheduled-reports"
         }
     }
 
@@ -296,6 +299,11 @@ async def startup_event():
         bm25 = get_bm25_retriever()
         logger.info(f"BM25 loaded: {len(bm25.chunks)} documents")
 
+        # Start report scheduler
+        report_scheduler = get_report_scheduler()
+        report_scheduler.start()
+        logger.info("Report scheduler started")
+
         logger.info("=" * 60)
         logger.info("System ready for requests")
         logger.info("=" * 60)
@@ -312,6 +320,11 @@ async def shutdown_event():
     logger.info("Shutting down PROJECT LUMEN...")
 
     try:
+        # Shutdown report scheduler
+        report_scheduler = get_report_scheduler()
+        report_scheduler.shutdown()
+        logger.info("Report scheduler shut down")
+
         # Save indices
         from backend.rag.vector_store import get_vector_store
         from backend.rag.sparse_retriever import get_bm25_retriever
