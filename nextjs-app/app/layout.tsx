@@ -20,6 +20,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LUMEN - AI Financial Intelligence",
   description: "AI-native financial intelligence layer with multimodal analysis and agentic reasoning",
+  icons: {
+    icon: '/lumenlogo.svg',
+    shortcut: '/lumenlogo.svg',
+    apple: '/lumenlogo.svg',
+  },
 };
 
 export default function RootLayout({

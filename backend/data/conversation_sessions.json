@@ -621,5 +621,91 @@
     ],
     "context": {},
     "status": "active"
+  },
+  "7af30157-7909-4e7b-9ca7-c13912f4d80e": {
+    "session_id": "7af30157-7909-4e7b-9ca7-c13912f4d80e",
+    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+    "created_at": "2025-11-15 11:59:51.947388",
+    "updated_at": "2025-11-15 11:59:51.947391",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi",
+        "timestamp": "2025-11-15 11:59:51.948714",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\u2705 Success!",
+        "timestamp": "2025-11-15 11:59:55.052868",
+        "metadata": {
+          "action": {
+            "endpoint": "/health",
+            "method": "GET",
+            "parameters": {},
+            "success": true,
+            "response_data": {
+              "status": "healthy",
+              "components": {
+                "vector_store": {
+                  "status": "operational",
+                  "documents_indexed": 15
+                },
+                "workspace": {
+                  "status": "operational",
+                  "path": "/home/fahmin/Documents/codes/web3/zksync/hackasol2/backend/workspace.md"
+                }
+              }
+            },
+            "error": null
+          }
+        }
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "6d531b4e-e333-4af6-947c-7cb81b3a32a6": {
+    "session_id": "6d531b4e-e333-4af6-947c-7cb81b3a32a6",
+    "user_id": "test_user_001",
+    "created_at": "2025-11-15 12:01:16.823440",
+    "updated_at": "2025-11-15 12:01:16.823455",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi",
+        "timestamp": "2025-11-15 12:01:16.824576",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\u2705 Success!",
+        "timestamp": "2025-11-15 12:01:17.633605",
+        "metadata": {
+          "action": {
+            "endpoint": "/health",
+            "method": "GET",
+            "parameters": {},
+            "success": true,
+            "response_data": {
+              "status": "healthy",
+              "components": {
+                "vector_store": {
+                  "status": "operational",
+                  "documents_indexed": 15
+                },
+                "workspace": {
+                  "status": "operational",
+                  "path": "/home/fahmin/Documents/codes/web3/zksync/hackasol2/backend/workspace.md"
+                }
+              }
+            },
+            "error": null
+          }
+        }
+      }
+    ],
+    "context": {},
+    "status": "active"
   }
 }
