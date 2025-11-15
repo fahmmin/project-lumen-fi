@@ -68,20 +68,35 @@ class IntentDetectionAgent:
 
         return False
 
-    def generate_conversational_response(self, user_message: str) -> str:
+    def generate_conversational_response(
+        self,
+        user_message: str,
+        conversation_history: list = None
+    ) -> str:
         """
-        Generate friendly conversational response using LLM
+        Generate friendly conversational response using LLM with conversation history
 
         Args:
             user_message: User's conversational message
+            conversation_history: Previous messages in the conversation
 
         Returns:
             Natural language response
         """
         try:
+            # Build conversation context
+            context = ""
+            if conversation_history and len(conversation_history) > 0:
+                context = "Previous conversation:\n"
+                for msg in conversation_history[-5:]:  # Last 5 messages for context
+                    role = msg.get('role', 'unknown')
+                    content = msg.get('content', '')
+                    context += f"{role}: {content}\n"
+                context += "\n"
+
             prompt = f"""You are a friendly financial assistant chatbot for Project Lumen.
 
-User said: "{user_message}"
+{context}User said: "{user_message}"
 
 Respond in a warm, helpful way. If they're greeting you, greet them back and mention you can help with:
 - Tracking expenses and receipts
@@ -96,6 +111,8 @@ If they ask what you can do, give examples like:
 - "Create a goal to save $10000"
 - "Show my spending dashboard"
 - "Generate a weekly report"
+
+If they're asking a follow-up question, use the conversation history above for context.
 
 Keep your response concise (2-3 sentences max).
 
@@ -215,7 +232,19 @@ Response:"""
         # Add context if available
         context_text = ""
         if user_context:
-            context_text = f"\nUser Context: {json.dumps(user_context, indent=2)}"
+            # Include conversation history if present
+            conversation_history = user_context.get('conversation_history', [])
+            if conversation_history:
+                context_text += "\nPrevious conversation:\n"
+                for msg in conversation_history[-3:]:  # Last 3 messages
+                    role = msg.get('role', 'unknown')
+                    content = msg.get('content', '')
+                    context_text += f"{role}: {content}\n"
+
+            # Include other context (without conversation history to avoid duplication)
+            other_context = {k: v for k, v in user_context.items() if k != 'conversation_history'}
+            if other_context:
+                context_text += f"\nUser Context: {json.dumps(other_context, indent=2)}"
 
         prompt = f"""You are an API routing assistant. Your job is to determine which API endpoint the user wants to call based on their message.
 
@@ -234,7 +263,7 @@ Consider:
 - Exact keyword matches in the message
 - The user's likely intent (create, read, update, delete, analyze)
 - Common phrasing patterns
-- Context from previous interactions
+- Context from previous interactions (if user refers to "it", "also", "another", use the conversation history)
 
 Respond in EXACTLY this JSON format:
 {{
