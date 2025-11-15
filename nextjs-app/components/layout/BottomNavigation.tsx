@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FileSearch, Database, TrendingUp, Plus } from 'lucide-react';
+import { Home, FileSearch, Database, TrendingUp, Plus, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
     { href: '/audit', icon: FileSearch, label: 'Audit' },
     { href: '/documents', icon: Database, label: 'Documents' },
     { href: '/insights', icon: TrendingUp, label: 'Insights' },
+    { href: '/assistant', icon: MessageCircle, label: 'Assistant' },
 ];
 
 export function BottomNavigation() {

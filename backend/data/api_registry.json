@@ -1,0 +1,974 @@
+{
+  "endpoints": [
+    {
+      "path": "/ingest/status/{document_id}",
+      "method": "GET",
+      "name": "get_ingestion_status",
+      "description": "Get ingestion status for a document\n\n    Args:\n        document_id: Document ID\n\n    Returns:\n        Status information",
+      "summary": "Get ingestion status for a document",
+      "parameters": {
+        "document_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "upload receipt",
+        "add receipt",
+        "I spent",
+        "parse receipt"
+      ],
+      "tags": [
+        "ingestion"
+      ],
+      "category": "receipt_upload"
+    },
+    {
+      "path": "/audit/{audit_id}",
+      "method": "GET",
+      "name": "get_audit_by_id",
+      "description": "Retrieve specific audit by ID\n\n    Args:\n        audit_id: Audit ID\n\n    Returns:\n        Audit details",
+      "summary": "Retrieve specific audit by ID",
+      "parameters": {
+        "audit_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "audit",
+        "check compliance",
+        "validate",
+        "is this legit"
+      ],
+      "tags": [
+        "audit"
+      ],
+      "category": "audit_compliance"
+    },
+    {
+      "path": "/audit/user/{user_id}/stats",
+      "method": "GET",
+      "name": "get_user_audit_stats",
+      "description": "Get audit statistics for a user\n    \n    Args:\n        user_id: User ID (wallet address) - will be normalized to lowercase\n        \n    Returns:\n        Audit statistics",
+      "summary": "Get audit statistics for a user",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "audit",
+        "check compliance",
+        "validate",
+        "is this legit"
+      ],
+      "tags": [
+        "audit"
+      ],
+      "category": "audit_compliance"
+    },
+    {
+      "path": "/memory/",
+      "method": "GET",
+      "name": "get_workspace_memory",
+      "description": "Get complete workspace memory\n\n    Returns:\n        Full workspace.md content",
+      "summary": "Get complete workspace memory",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "memory"
+      ],
+      "category": "memory_rag"
+    },
+    {
+      "path": "/memory/stats",
+      "method": "GET",
+      "name": "get_workspace_stats",
+      "description": "Get workspace statistics\n\n    Returns:\n        Statistics about workspace",
+      "summary": "Get workspace statistics",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "memory"
+      ],
+      "category": "memory_rag"
+    },
+    {
+      "path": "/memory/clear",
+      "method": "DELETE",
+      "name": "clear_workspace",
+      "description": "Clear workspace memory (USE WITH CAUTION)\n\n    Returns:\n        Confirmation",
+      "summary": "Clear workspace memory (USE WITH CAUTION)",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "memory"
+      ],
+      "category": "memory_rag"
+    },
+    {
+      "path": "/users/profile/{user_id}",
+      "method": "GET",
+      "name": "get_user_profile",
+      "description": "Get user profile (auto-creates if doesn't exist)\n\n    Args:\n        user_id: User ID\n\n    Returns:\n        User profile",
+      "summary": "Get user profile (auto-creates if doesn't exist)",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "show my profile",
+        "my account",
+        "profile info",
+        "who am I"
+      ],
+      "tags": [
+        "users"
+      ],
+      "category": "user_profile"
+    },
+    {
+      "path": "/users/profile/{user_id}",
+      "method": "DELETE",
+      "name": "delete_user_profile",
+      "description": "Delete user profile and all associated data\n\n    Args:\n        user_id: User ID\n\n    Returns:\n        Deletion summary\n\n    Raises:\n        404: Profile not found",
+      "summary": "Delete user profile and all associated data",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "users"
+      ],
+      "category": "user_profile"
+    },
+    {
+      "path": "/users/",
+      "method": "GET",
+      "name": "list_all_users",
+      "description": "List all user profiles\n\n    Returns:\n        List of all users",
+      "summary": "List all user profiles",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "users"
+      ],
+      "category": "user_profile"
+    },
+    {
+      "path": "/goals/{user_id}",
+      "method": "GET",
+      "name": "list_user_goals",
+      "description": "List all goals for a user\n\n    Args:\n        user_id: User ID\n\n    Returns:\n        List of goals",
+      "summary": "List all goals for a user",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "show goals",
+        "my goals",
+        "what am I saving for",
+        "list goals"
+      ],
+      "tags": [
+        "goals"
+      ],
+      "category": "financial_goals"
+    },
+    {
+      "path": "/goals/{user_id}/{goal_id}",
+      "method": "GET",
+      "name": "get_goal",
+      "description": "Get specific goal details\n\n    Args:\n        user_id: User ID\n        goal_id: Goal ID\n\n    Returns:\n        Goal details\n\n    Raises:\n        404: Goal not found",
+      "summary": "Get specific goal details",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        },
+        "goal_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "show goals",
+        "my goals",
+        "what am I saving for",
+        "list goals"
+      ],
+      "tags": [
+        "goals"
+      ],
+      "category": "financial_goals"
+    },
+    {
+      "path": "/finance/predictions/{user_id}",
+      "method": "GET",
+      "name": "get_predictions",
+      "description": "Predict next month's spending",
+      "summary": "Predict next month's spending",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "predict",
+        "forecast",
+        "what will I spend",
+        "next month"
+      ],
+      "tags": [
+        "finance"
+      ],
+      "category": "spending_analysis"
+    },
+    {
+      "path": "/finance/budget-recommendations/{user_id}",
+      "method": "GET",
+      "name": "get_budget_recommendations",
+      "description": "Get budget recommendations",
+      "summary": "Get budget recommendations",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "finance"
+      ],
+      "category": "spending_analysis"
+    },
+    {
+      "path": "/finance/insights/{user_id}",
+      "method": "GET",
+      "name": "get_insights",
+      "description": "Get AI-powered spending insights",
+      "summary": "Get AI-powered spending insights",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "insights",
+        "tips",
+        "advice",
+        "suggestions",
+        "recommendations"
+      ],
+      "tags": [
+        "finance"
+      ],
+      "category": "spending_analysis"
+    },
+    {
+      "path": "/finance/health-score/{user_id}",
+      "method": "GET",
+      "name": "get_health_score",
+      "description": "Get financial health score",
+      "summary": "Get financial health score",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "health score",
+        "financial health",
+        "how healthy",
+        "rate me"
+      ],
+      "tags": [
+        "finance"
+      ],
+      "category": "spending_analysis"
+    },
+    {
+      "path": "/finance/behavior/{user_id}",
+      "method": "GET",
+      "name": "get_behavior_analysis",
+      "description": "Get behavioral spending analysis",
+      "summary": "Get behavioral spending analysis",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "finance"
+      ],
+      "category": "spending_analysis"
+    },
+    {
+      "path": "/finance/{user_id}/goals/{goal_id}/plan",
+      "method": "GET",
+      "name": "get_goal_plan",
+      "description": "Get savings and investment plan for goal",
+      "summary": "Get savings and investment plan for goal",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        },
+        "goal_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "show goals",
+        "my goals",
+        "what am I saving for",
+        "list goals"
+      ],
+      "tags": [
+        "finance"
+      ],
+      "category": "financial_goals"
+    },
+    {
+      "path": "/finance/{user_id}/goals/{goal_id}/progress",
+      "method": "GET",
+      "name": "get_goal_progress",
+      "description": "Track progress toward goal",
+      "summary": "Track progress toward goal",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        },
+        "goal_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "show goals",
+        "my goals",
+        "what am I saving for",
+        "list goals"
+      ],
+      "tags": [
+        "finance"
+      ],
+      "category": "financial_goals"
+    },
+    {
+      "path": "/reminders/{user_id}",
+      "method": "GET",
+      "name": "get_reminders",
+      "description": "Get active smart reminders",
+      "summary": "Get active smart reminders",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "reminders",
+        "bills",
+        "what's due",
+        "payments"
+      ],
+      "tags": [
+        "reminders"
+      ],
+      "category": "reminders_patterns"
+    },
+    {
+      "path": "/patterns/{user_id}",
+      "method": "GET",
+      "name": "get_patterns",
+      "description": "Get detected spending patterns",
+      "summary": "Get detected spending patterns",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "patterns",
+        "trends",
+        "habits",
+        "spending patterns"
+      ],
+      "tags": [
+        "reminders"
+      ],
+      "category": "reminders_patterns"
+    },
+    {
+      "path": "/subscriptions/{user_id}",
+      "method": "GET",
+      "name": "get_subscriptions",
+      "description": "Get all detected subscriptions",
+      "summary": "Get all detected subscriptions",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "subscriptions",
+        "recurring",
+        "what subscriptions"
+      ],
+      "tags": [
+        "subscriptions"
+      ],
+      "category": "subscriptions"
+    },
+    {
+      "path": "/subscriptions/{user_id}/unused",
+      "method": "GET",
+      "name": "get_unused_subscriptions",
+      "description": "Get unused subscriptions with savings potential",
+      "summary": "Get unused subscriptions with savings potential",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "unused",
+        "cancel subscriptions",
+        "save money"
+      ],
+      "tags": [
+        "subscriptions"
+      ],
+      "category": "subscriptions"
+    },
+    {
+      "path": "/gamification/stats/{user_id}",
+      "method": "GET",
+      "name": "get_user_stats",
+      "description": "Get complete gamification stats for user\n\n    Returns:\n    - Total points and level\n    - Progress to next level\n    - Badges earned/total\n    - Current and longest streak\n    - Leaderboard rank and percentile\n    - Next achievable badges",
+      "summary": "Get complete gamification stats for user",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [
+        "my stats",
+        "my level",
+        "my points",
+        "my badges"
+      ],
+      "tags": [
+        "Gamification"
+      ],
+      "category": "gamification"
+    },
+    {
+      "path": "/gamification/badges/{user_id}",
+      "method": "GET",
+      "name": "get_user_badges",
+      "description": "Get all badges for user (earned and unearned)\n\n    **Returns:**\n    - Earned badges with unlock dates\n    - Unearned badges with requirements\n    - Total counts",
+      "summary": "Get all badges for user (earned and unearned)",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Gamification"
+      ],
+      "category": "gamification"
+    },
+    {
+      "path": "/gamification/daily-login/{user_id}",
+      "method": "POST",
+      "name": "record_daily_login",
+      "description": "Record daily login and update streak\n\n    **Awards:**\n    - 5 points for daily login (only once per day)\n    - Streak badges if thresholds reached",
+      "summary": "Record daily login and update streak",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Gamification"
+      ],
+      "category": "gamification"
+    },
+    {
+      "path": "/ws/alerts/{user_id}/unread-count",
+      "method": "GET",
+      "name": "get_unread_count",
+      "description": "Get count of unread alerts",
+      "summary": "Get count of unread alerts",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "WebSocket",
+        "Alerts"
+      ],
+      "category": "general"
+    },
+    {
+      "path": "/ws/alerts/{user_id}/mark-read/{alert_id}",
+      "method": "POST",
+      "name": "mark_alert_as_read",
+      "description": "Mark specific alert as read",
+      "summary": "Mark specific alert as read",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        },
+        "alert_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "WebSocket",
+        "Alerts"
+      ],
+      "category": "general"
+    },
+    {
+      "path": "/ws/alerts/{user_id}/mark-all-read",
+      "method": "POST",
+      "name": "mark_all_alerts_as_read",
+      "description": "Mark all alerts as read",
+      "summary": "Mark all alerts as read",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "WebSocket",
+        "Alerts"
+      ],
+      "category": "general"
+    },
+    {
+      "path": "/ws/alerts/{user_id}/alerts/{alert_id}",
+      "method": "DELETE",
+      "name": "delete_alert",
+      "description": "Delete specific alert",
+      "summary": "Delete specific alert",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        },
+        "alert_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "WebSocket",
+        "Alerts"
+      ],
+      "category": "general"
+    },
+    {
+      "path": "/voice/supported-formats",
+      "method": "GET",
+      "name": "get_supported_formats",
+      "description": "Get list of supported audio formats\n\n    **Returns:**\n    List of supported audio file extensions",
+      "summary": "Get list of supported audio formats",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Voice Upload"
+      ],
+      "category": "receipt_upload"
+    },
+    {
+      "path": "/family/{family_id}",
+      "method": "GET",
+      "name": "get_family",
+      "description": "Get family details\n\n    **Returns:**\n    - Family information\n    - Member list\n    - Shared budget\n    - Invite code",
+      "summary": "Get family details",
+      "parameters": {
+        "family_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Family & Shared Budgets"
+      ],
+      "category": "family_budgets"
+    },
+    {
+      "path": "/family/user/{user_id}/families",
+      "method": "GET",
+      "name": "get_user_families",
+      "description": "Get all families a user belongs to\n\n    **Returns:**\n    List of families the user is a member of",
+      "summary": "Get all families a user belongs to",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Family & Shared Budgets"
+      ],
+      "category": "family_budgets"
+    },
+    {
+      "path": "/family/invite-code/{invite_code}/verify",
+      "method": "GET",
+      "name": "verify_invite_code",
+      "description": "Verify an invite code is valid\n\n    **Returns:**\n    - Family name and member count if valid\n    - Error if invalid",
+      "summary": "Verify an invite code is valid",
+      "parameters": {
+        "invite_code": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Family & Shared Budgets"
+      ],
+      "category": "family_budgets"
+    },
+    {
+      "path": "/reports/download/{filename}",
+      "method": "GET",
+      "name": "download_report",
+      "description": "Download a generated report\n\n    **Usage:**\n    GET /reports/download/report_user_abc123.pdf",
+      "summary": "Download a generated report",
+      "parameters": {
+        "filename": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Reports & PDF Generation"
+      ],
+      "category": "reports"
+    },
+    {
+      "path": "/email/example",
+      "method": "GET",
+      "name": "get_example_email",
+      "description": "Get example email for testing\n\n    **Returns:**\n    Sample email that the parser can process",
+      "summary": "Get example email for testing",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Email Integration"
+      ],
+      "category": "receipt_upload"
+    },
+    {
+      "path": "/scheduled-reports/schedule/{user_id}",
+      "method": "DELETE",
+      "name": "unschedule_report",
+      "description": "Cancel scheduled reports for a user",
+      "summary": "Cancel scheduled reports for a user",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Scheduled Reports"
+      ],
+      "category": "reports"
+    },
+    {
+      "path": "/scheduled-reports/schedule/{user_id}",
+      "method": "GET",
+      "name": "get_user_schedule",
+      "description": "Get scheduled report configuration for a user",
+      "summary": "Get scheduled report configuration for a user",
+      "parameters": {
+        "user_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Scheduled Reports"
+      ],
+      "category": "reports"
+    },
+    {
+      "path": "/scheduled-reports/schedules",
+      "method": "GET",
+      "name": "list_all_schedules",
+      "description": "List all scheduled reports (admin endpoint)",
+      "summary": "List all scheduled reports (admin endpoint)",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Scheduled Reports"
+      ],
+      "category": "reports"
+    },
+    {
+      "path": "/scheduled-reports/status",
+      "method": "GET",
+      "name": "scheduler_status",
+      "description": "Get scheduler status and configuration",
+      "summary": "Get scheduler status and configuration",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "Scheduled Reports"
+      ],
+      "category": "reports"
+    },
+    {
+      "path": "/assistant/session/{session_id}",
+      "method": "DELETE",
+      "name": "clear_session",
+      "description": "Clear/delete a conversation session\n\n    Args:\n        session_id: Session ID to clear",
+      "summary": "Clear/delete a conversation session",
+      "parameters": {
+        "session_id": {
+          "type": "string",
+          "required": true,
+          "location": "path"
+        }
+      },
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "AI Assistant"
+      ],
+      "category": "general"
+    },
+    {
+      "path": "/assistant/capabilities",
+      "method": "GET",
+      "name": "get_capabilities",
+      "description": "Get chatbot capabilities - list of all actions it can perform\n\n    Returns a comprehensive list of what the AI assistant can do,\n    organized by category with example phrases.",
+      "summary": "Get chatbot capabilities - list of all actions it can perform",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "AI Assistant"
+      ],
+      "category": "general"
+    },
+    {
+      "path": "/assistant/status",
+      "method": "GET",
+      "name": "get_status",
+      "description": "Get assistant system status\n\n    Returns status of all components",
+      "summary": "Get assistant system status",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [
+        "AI Assistant"
+      ],
+      "category": "general"
+    },
+    {
+      "path": "/",
+      "method": "GET",
+      "name": "root",
+      "description": "Root endpoint - API information",
+      "summary": "Root endpoint - API information",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [],
+      "category": "general"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "name": "health_check",
+      "description": "Health check endpoint",
+      "summary": "Health check endpoint",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [],
+      "category": "general"
+    },
+    {
+      "path": "/info",
+      "method": "GET",
+      "name": "system_info",
+      "description": "Get system information",
+      "summary": "Get system information",
+      "parameters": {},
+      "request_model": null,
+      "response_model": null,
+      "examples": [],
+      "tags": [],
+      "category": "general"
+    }
+  ],
+  "total_endpoints": 45
+}

@@ -213,7 +213,7 @@ Return ONLY a JSON object with the extracted parameters:
 }}
 
 If a parameter cannot be determined, omit it from the JSON.
-Return {} if no parameters can be extracted.
+Return empty JSON object if no parameters can be extracted.
 
 IMPORTANT: Return ONLY the JSON object, no explanations.
 """

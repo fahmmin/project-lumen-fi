@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Trophy, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@/contexts/UserContext';
+import { gamificationAPI } from '@/services/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Grouped navigation items - merge similar features
 const navItems = [
@@ -34,6 +37,30 @@ const navItems = [
 export function Header() {
     const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { userId, isConnected } = useUser();
+    const [gamificationStats, setGamificationStats] = useState<any>(null);
+    const [loadingStats, setLoadingStats] = useState(false);
+
+    // Fetch gamification stats when user is connected
+    useEffect(() => {
+        const loadStats = async () => {
+            if (!userId || !isConnected) {
+                setGamificationStats(null);
+                return;
+            }
+            setLoadingStats(true);
+            try {
+                const stats = await gamificationAPI.getUserStats(userId);
+                setGamificationStats(stats);
+            } catch (error) {
+                // Silently fail - gamification is optional
+                console.log('Failed to load gamification stats:', error);
+            } finally {
+                setLoadingStats(false);
+            }
+        };
+        loadStats();
+    }, [userId, isConnected]);
 
     return (
         <header className="sticky top-0 z-40 border-b border-gray-200/50 dark:border-gray-800/50 bg-white/95 dark:bg-black/95 backdrop-blur-lg">
@@ -45,7 +72,7 @@ export function Header() {
                     >
                         LUMEN
                     </Link>
-                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 justify-end lg:justify-between">
                         {/* Desktop Navigation - Scrollable horizontal menu with all items visible */}
                         <nav className="hidden lg:flex items-center gap-1 xl:gap-2 overflow-x-auto scrollbar-hide flex-1 min-w-0">
                             {navItems.map((item) => (
@@ -64,21 +91,94 @@ export function Header() {
                             ))}
                         </nav>
 
-                        {/* Mobile Menu Button */}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="lg:hidden"
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        >
-                            {mobileMenuOpen ? (
-                                <X className="h-5 w-5" />
-                            ) : (
-                                <Menu className="h-5 w-5" />
+                        {/* Right side items */}
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            {/* Gamification Stats - Desktop */}
+                            {isConnected && (
+                                <div className="hidden md:flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex-shrink-0">
+                                    {loadingStats ? (
+                                        <>
+                                            <Skeleton className="h-4 w-10" />
+                                            <Skeleton className="h-4 w-12" />
+                                        </>
+                                    ) : gamificationStats ? (
+                                        <>
+                                            <Link
+                                                href="/gamification"
+                                                className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+                                                title="View gamification details"
+                                            >
+                                                <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+                                                <span className="text-xs font-semibold">
+                                                    L{gamificationStats.level || 1}
+                                                </span>
+                                            </Link>
+                                            <div className="h-4 w-px bg-gray-300 dark:bg-gray-700" />
+                                            <Link
+                                                href="/gamification"
+                                                className="flex items-center gap-1 text-xs font-medium hover:opacity-80 transition-opacity cursor-pointer"
+                                                title="Total points"
+                                            >
+                                                <span className="text-gray-700 dark:text-gray-300">
+                                                    {(gamificationStats.total_points || 0).toLocaleString()}
+                                                </span>
+                                            </Link>
+                                            {gamificationStats.current_streak > 0 && (
+                                                <>
+                                                    <div className="h-4 w-px bg-gray-300 dark:bg-gray-700" />
+                                                    <Link
+                                                        href="/gamification"
+                                                        className="flex items-center gap-1 text-xs font-medium hover:opacity-80 transition-opacity cursor-pointer"
+                                                        title="Current streak"
+                                                    >
+                                                        <Flame className="h-3.5 w-3.5 text-orange-500" />
+                                                        <span className="text-gray-700 dark:text-gray-300">
+                                                            {gamificationStats.current_streak}
+                                                        </span>
+                                                    </Link>
+                                                </>
+                                            )}
+                                        </>
+                                    ) : null}
+                                </div>
                             )}
-                        </Button>
 
-                        <ThemeToggle />
+                            {/* Mobile Menu Button */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="lg:hidden"
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            >
+                                {mobileMenuOpen ? (
+                                    <X className="h-5 w-5" />
+                                ) : (
+                                    <Menu className="h-5 w-5" />
+                                )}
+                            </Button>
+
+                            {/* Gamification Stats - Mobile (compact) */}
+                            {isConnected && !mobileMenuOpen && (
+                                <div className="md:hidden flex items-center gap-1.5 px-2 py-1 rounded bg-gray-100 dark:bg-gray-900 flex-shrink-0">
+                                    {loadingStats ? (
+                                        <Skeleton className="h-4 w-10" />
+                                    ) : gamificationStats ? (
+                                        <Link
+                                            href="/gamification"
+                                            className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                                            title="Gamification"
+                                        >
+                                            <Trophy className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-500" />
+                                            <span className="text-xs font-semibold">
+                                                {(gamificationStats.total_points || 0).toLocaleString()}
+                                            </span>
+                                        </Link>
+                                    ) : null}
+                                </div>
+                            )}
+
+                            <ThemeToggle />
+                        </div>
                     </div>
                 </div>
 

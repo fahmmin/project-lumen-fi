@@ -1,0 +1,625 @@
+{
+  "83dbacf5-171a-47d3-ba7d-2e9603b4e1a2": {
+    "session_id": "83dbacf5-171a-47d3-ba7d-2e9603b4e1a2",
+    "user_id": "test_user_001",
+    "created_at": "2025-11-15 11:43:11.917735",
+    "updated_at": "2025-11-15 11:43:11.917777",
+    "messages": [
+      {
+        "role": "user",
+        "content": "I spent $50 at Starbucks",
+        "timestamp": "2025-11-15 11:43:11.919643",
+        "metadata": null
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "a60e36ac-7150-4908-aea0-2f0860855027": {
+    "session_id": "a60e36ac-7150-4908-aea0-2f0860855027",
+    "user_id": "test_user_001",
+    "created_at": "2025-11-15 11:45:34.712453",
+    "updated_at": "2025-11-15 11:45:34.712472",
+    "messages": [
+      {
+        "role": "user",
+        "content": "show my dashboard",
+        "timestamp": "2025-11-15 11:45:34.714263",
+        "metadata": null
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "43620e93-2d54-4d12-acfe-0c5f755a5f72": {
+    "session_id": "43620e93-2d54-4d12-acfe-0c5f755a5f72",
+    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+    "created_at": "2025-11-15 11:46:44.529784",
+    "updated_at": "2025-11-15 11:46:44.529795",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi",
+        "timestamp": "2025-11-15 11:46:44.530365",
+        "metadata": null
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "c49d264c-2b11-4b96-934b-8faa68b4ac73": {
+    "session_id": "c49d264c-2b11-4b96-934b-8faa68b4ac73",
+    "user_id": "test_user_001",
+    "created_at": "2025-11-15 11:47:55.433558",
+    "updated_at": "2025-11-15 11:47:55.433575",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi",
+        "timestamp": "2025-11-15 11:47:55.434809",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\u2705 Done! Your request was completed successfully.",
+        "timestamp": "2025-11-15 11:47:59.685664",
+        "metadata": {
+          "action": {
+            "endpoint": "/health",
+            "method": "GET",
+            "parameters": {},
+            "success": true,
+            "response_data": {
+              "status": "healthy",
+              "components": {
+                "vector_store": {
+                  "status": "operational",
+                  "documents_indexed": 15
+                },
+                "workspace": {
+                  "status": "operational",
+                  "path": "/home/fahmin/Documents/codes/web3/zksync/hackasol2/backend/workspace.md"
+                }
+              }
+            },
+            "error": null
+          }
+        }
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "967ab06c-14db-4b13-b055-9901d216f686": {
+    "session_id": "967ab06c-14db-4b13-b055-9901d216f686",
+    "user_id": "test_user_001",
+    "created_at": "2025-11-15 11:48:07.894679",
+    "updated_at": "2025-11-15 11:48:07.894702",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi",
+        "timestamp": "2025-11-15 11:48:07.895911",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\u2705 Done! Your request was completed successfully.",
+        "timestamp": "2025-11-15 11:48:08.841207",
+        "metadata": {
+          "action": {
+            "endpoint": "/health",
+            "method": "GET",
+            "parameters": {},
+            "success": true,
+            "response_data": {
+              "status": "healthy",
+              "components": {
+                "vector_store": {
+                  "status": "operational",
+                  "documents_indexed": 15
+                },
+                "workspace": {
+                  "status": "operational",
+                  "path": "/home/fahmin/Documents/codes/web3/zksync/hackasol2/backend/workspace.md"
+                }
+              }
+            },
+            "error": null
+          }
+        }
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "b3f084d6-0476-454a-a263-fc5488dc383a": {
+    "session_id": "b3f084d6-0476-454a-a263-fc5488dc383a",
+    "user_id": "test_user_001",
+    "created_at": "2025-11-15 11:48:17.547936",
+    "updated_at": "2025-11-15 11:48:17.547954",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi",
+        "timestamp": "2025-11-15 11:48:17.550311",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\u2705 Done! Your request was completed successfully.",
+        "timestamp": "2025-11-15 11:48:18.532934",
+        "metadata": {
+          "action": {
+            "endpoint": "/health",
+            "method": "GET",
+            "parameters": {},
+            "success": true,
+            "response_data": {
+              "status": "healthy",
+              "components": {
+                "vector_store": {
+                  "status": "operational",
+                  "documents_indexed": 15
+                },
+                "workspace": {
+                  "status": "operational",
+                  "path": "/home/fahmin/Documents/codes/web3/zksync/hackasol2/backend/workspace.md"
+                }
+              }
+            },
+            "error": null
+          }
+        }
+      }
+    ],
+    "context": {},
+    "status": "active"
+  },
+  "16096d22-07bd-4248-9663-8a15a2d3b1ae": {
+    "session_id": "16096d22-07bd-4248-9663-8a15a2d3b1ae",
+    "user_id": "0x1aea8cf0dfe13ed3025910c88f7356935d76536c",
+    "created_at": "2025-11-15 11:48:45.278500",
+    "updated_at": "2025-11-15 11:48:45.278505",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hi",
+        "timestamp": "2025-11-15 11:48:45.280535",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\u2705 Done! Your request was completed successfully.",
+        "timestamp": "2025-11-15 11:48:46.195960",
+        "metadata": {
+          "action": {
+            "endpoint": "/health",
+            "method": "GET",
+            "parameters": {},
+            "success": true,
+            "response_data": {
+              "status": "healthy",
+              "components": {
+                "vector_store": {
+                  "status": "operational",
+                  "documents_indexed": 15
+                },
+                "workspace": {
+                  "status": "operational",
+                  "path": "/home/fahmin/Documents/codes/web3/zksync/hackasol2/backend/workspace.md"
+                }
+              }
+            },
+            "error": null
+          }
+        }
+      },
+      {
+        "role": "user",
+        "content": "Ask me 'what can you do?' to see my capabilities",
+        "timestamp": "2025-11-15 11:48:52.433856",
+        "metadata": null
+      },
+      {
+        "role": "assistant",
+        "content": "\u2705 Done! Your request was completed successfully.",
+        "timestamp": "2025-11-15 11:48:53.159845",
+        "metadata": {
+          "action": {
+            "endpoint": "/assistant/capabilities",
+            "method": "GET",
+            "parameters": {
+              "action": "GET /assistant/capabilities"
+            },
+            "success": true,
+            "response_data": {
+              "categories": [
+                {
+                  "category": "receipt_upload",
+                  "name": "Receipt Upload",
+                  "endpoints": [
+                    {
+                      "path": "/ingest/status/{document_id}",
+                      "method": "GET",
+                      "description": "Get ingestion status for a document"
+                    },
+                    {
+                      "path": "/voice/supported-formats",
+                      "method": "GET",
+                      "description": "Get list of supported audio formats"
+                    },
+                    {
+                      "path": "/email/example",
+                      "method": "GET",
+                      "description": "Get example email for testing"
+                    }
+                  ],
+                  "examples": [
+                    "upload receipt",
+                    "add receipt",
+                    "I spent",
+                    "parse receipt"
+                  ]
+                },
+                {
+                  "category": "audit_compliance",
+                  "name": "Audit Compliance",
+                  "endpoints": [
+                    {
+                      "path": "/audit/{audit_id}",
+                      "method": "GET",
+                      "description": "Retrieve specific audit by ID"
+                    },
+                    {
+                      "path": "/audit/user/{user_id}/stats",
+                      "method": "GET",
+                      "description": "Get audit statistics for a user"
+                    }
+                  ],
+                  "examples": [
+                    "audit",
+                    "check compliance",
+                    "validate",
+                    "is this legit"
+                  ]
+                },
+                {
+                  "category": "memory_rag",
+                  "name": "Memory Rag",
+                  "endpoints": [
+                    {
+                      "path": "/memory/",
+                      "method": "GET",
+                      "description": "Get complete workspace memory"
+                    },
+                    {
+                      "path": "/memory/stats",
+                      "method": "GET",
+                      "description": "Get workspace statistics"
+                    },
+                    {
+                      "path": "/memory/clear",
+                      "method": "DELETE",
+                      "description": "Clear workspace memory (USE WITH CAUTION)"
+                    }
+                  ],
+                  "examples": []
+                },
+                {
+                  "category": "user_profile",
+                  "name": "User Profile",
+                  "endpoints": [
+                    {
+                      "path": "/users/profile/{user_id}",
+                      "method": "GET",
+                      "description": "Get user profile (auto-creates if doesn't exist)"
+                    },
+                    {
+                      "path": "/users/profile/{user_id}",
+                      "method": "DELETE",
+                      "description": "Delete user profile and all associated data"
+                    },
+                    {
+                      "path": "/users/",
+                      "method": "GET",
+                      "description": "List all user profiles"
+                    }
+                  ],
+                  "examples": [
+                    "show my profile",
+                    "my account",
+                    "profile info",
+                    "who am I"
+                  ]
+                },
+                {
+                  "category": "financial_goals",
+                  "name": "Financial Goals",
+                  "endpoints": [
+                    {
+                      "path": "/goals/{user_id}",
+                      "method": "GET",
+                      "description": "List all goals for a user"
+                    },
+                    {
+                      "path": "/goals/{user_id}/{goal_id}",
+                      "method": "GET",
+                      "description": "Get specific goal details"
+                    },
+                    {
+                      "path": "/finance/{user_id}/goals/{goal_id}/plan",
+                      "method": "GET",
+                      "description": "Get savings and investment plan for goal"
+                    },
+                    {
+                      "path": "/finance/{user_id}/goals/{goal_id}/progress",
+                      "method": "GET",
+                      "description": "Track progress toward goal"
+                    }
+                  ],
+                  "examples": [
+                    "show goals",
+                    "my goals",
+                    "what am I saving for",
+                    "list goals"
+                  ]
+                },
+                {
+                  "category": "spending_analysis",
+                  "name": "Spending Analysis",
+                  "endpoints": [
+                    {
+                      "path": "/finance/predictions/{user_id}",
+                      "method": "GET",
+                      "description": "Predict next month's spending"
+                    },
+                    {
+                      "path": "/finance/budget-recommendations/{user_id}",
+                      "method": "GET",
+                      "description": "Get budget recommendations"
+                    },
+                    {
+                      "path": "/finance/insights/{user_id}",
+                      "method": "GET",
+                      "description": "Get AI-powered spending insights"
+                    },
+                    {
+                      "path": "/finance/health-score/{user_id}",
+                      "method": "GET",
+                      "description": "Get financial health score"
+                    },
+                    {
+                      "path": "/finance/behavior/{user_id}",
+                      "method": "GET",
+                      "description": "Get behavioral spending analysis"
+                    }
+                  ],
+                  "examples": [
+                    "predict",
+                    "forecast",
+                    "what will I spend",
+                    "next month",
+                    "insights",
+                    "tips",
+                    "advice",
+                    "suggestions",
+                    "recommendations",
+                    "health score",
+                    "financial health",
+                    "how healthy",
+                    "rate me"
+                  ]
+                },
+                {
+                  "category": "reminders_patterns",
+                  "name": "Reminders Patterns",
+                  "endpoints": [
+                    {
+                      "path": "/reminders/{user_id}",
+                      "method": "GET",
+                      "description": "Get active smart reminders"
+                    },
+                    {
+                      "path": "/patterns/{user_id}",
+                      "method": "GET",
+                      "description": "Get detected spending patterns"
+                    }
+                  ],
+                  "examples": [
+                    "reminders",
+                    "bills",
+                    "what's due",
+                    "payments",
+                    "patterns",
+                    "trends",
+                    "habits",
+                    "spending patterns"
+                  ]
+                },
+                {
+                  "category": "subscriptions",
+                  "name": "Subscriptions",
+                  "endpoints": [
+                    {
+                      "path": "/subscriptions/{user_id}",
+                      "method": "GET",
+                      "description": "Get all detected subscriptions"
+                    },
+                    {
+                      "path": "/subscriptions/{user_id}/unused",
+                      "method": "GET",
+                      "description": "Get unused subscriptions with savings potential"
+                    }
+                  ],
+                  "examples": [
+                    "subscriptions",
+                    "recurring",
+                    "what subscriptions",
+                    "unused",
+                    "cancel subscriptions",
+                    "save money"
+                  ]
+                },
+                {
+                  "category": "gamification",
+                  "name": "Gamification",
+                  "endpoints": [
+                    {
+                      "path": "/gamification/stats/{user_id}",
+                      "method": "GET",
+                      "description": "Get complete gamification stats for user"
+                    },
+                    {
+                      "path": "/gamification/badges/{user_id}",
+                      "method": "GET",
+                      "description": "Get all badges for user (earned and unearned)"
+                    },
+                    {
+                      "path": "/gamification/daily-login/{user_id}",
+                      "method": "POST",
+                      "description": "Record daily login and update streak"
+                    }
+                  ],
+                  "examples": [
+                    "my stats",
+                    "my level",
+                    "my points",
+                    "my badges"
+                  ]
+                },
+                {
+                  "category": "general",
+                  "name": "General",
+                  "endpoints": [
+                    {
+                      "path": "/ws/alerts/{user_id}/unread-count",
+                      "method": "GET",
+                      "description": "Get count of unread alerts"
+                    },
+                    {
+                      "path": "/ws/alerts/{user_id}/mark-read/{alert_id}",
+                      "method": "POST",
+                      "description": "Mark specific alert as read"
+                    },
+                    {
+                      "path": "/ws/alerts/{user_id}/mark-all-read",
+                      "method": "POST",
+                      "description": "Mark all alerts as read"
+                    },
+                    {
+                      "path": "/ws/alerts/{user_id}/alerts/{alert_id}",
+                      "method": "DELETE",
+                      "description": "Delete specific alert"
+                    },
+                    {
+                      "path": "/assistant/session/{session_id}",
+                      "method": "DELETE",
+                      "description": "Clear/delete a conversation session"
+                    },
+                    {
+                      "path": "/assistant/capabilities",
+                      "method": "GET",
+                      "description": "Get chatbot capabilities - list of all actions it can perform"
+                    },
+                    {
+                      "path": "/assistant/status",
+                      "method": "GET",
+                      "description": "Get assistant system status"
+                    },
+                    {
+                      "path": "/",
+                      "method": "GET",
+                      "description": "Root endpoint - API information"
+                    },
+                    {
+                      "path": "/health",
+                      "method": "GET",
+                      "description": "Health check endpoint"
+                    },
+                    {
+                      "path": "/info",
+                      "method": "GET",
+                      "description": "Get system information"
+                    }
+                  ],
+                  "examples": []
+                },
+                {
+                  "category": "family_budgets",
+                  "name": "Family Budgets",
+                  "endpoints": [
+                    {
+                      "path": "/family/{family_id}",
+                      "method": "GET",
+                      "description": "Get family details"
+                    },
+                    {
+                      "path": "/family/user/{user_id}/families",
+                      "method": "GET",
+                      "description": "Get all families a user belongs to"
+                    },
+                    {
+                      "path": "/family/invite-code/{invite_code}/verify",
+                      "method": "GET",
+                      "description": "Verify an invite code is valid"
+                    }
+                  ],
+                  "examples": []
+                },
+                {
+                  "category": "reports",
+                  "name": "Reports",
+                  "endpoints": [
+                    {
+                      "path": "/reports/download/{filename}",
+                      "method": "GET",
+                      "description": "Download a generated report"
+                    },
+                    {
+                      "path": "/scheduled-reports/schedule/{user_id}",
+                      "method": "DELETE",
+                      "description": "Cancel scheduled reports for a user"
+                    },
+                    {
+                      "path": "/scheduled-reports/schedule/{user_id}",
+                      "method": "GET",
+                      "description": "Get scheduled report configuration for a user"
+                    },
+                    {
+                      "path": "/scheduled-reports/schedules",
+                      "method": "GET",
+                      "description": "List all scheduled reports (admin endpoint)"
+                    },
+                    {
+                      "path": "/scheduled-reports/status",
+                      "method": "GET",
+                      "description": "Get scheduler status and configuration"
+                    }
+                  ],
+                  "examples": []
+                }
+              ],
+              "total_endpoints": 45,
+              "examples": [
+                "I spent $50 at Starbucks",
+                "Create a goal to save $10000",
+                "Show my dashboard",
+                "Generate a weekly report",
+                "How much did I spend this month?",
+                "What subscriptions am I paying for?",
+                "Add a family member",
+                "Show my financial health score",
+                "What's my spending compared to others?",
+                "Set my monthly salary to $5000"
+              ]
+            },
+            "error": null
+          }
+        }
+      }
+    ],
+    "context": {},
+    "status": "active"
+  }
+}

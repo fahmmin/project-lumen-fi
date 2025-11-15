@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     API_RELOAD: bool = True
 
     # File paths
+    DATA_DIR: Path = DATA_DIR
     WORKSPACE_FILE: Path = BASE_DIR / "workspace.md"
     VECTOR_INDEX_PATH: Path = DATA_DIR / "vector_index.faiss"
     CHUNKS_FILE: Path = DATA_DIR / "chunks.jsonl"

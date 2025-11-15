@@ -1282,3 +1282,179 @@ export const emailAPI = {
     },
 };
 
+// Assistant/Chatbot API
+export interface ChatRequest {
+    message: string;
+    user_id?: string;
+    session_id?: string;
+    email?: string;
+}
+
+export interface ActionTaken {
+    endpoint: string;
+    method: string;
+    parameters: Record<string, any>;
+    success: boolean;
+    response_data?: Record<string, any>;
+    error?: string;
+}
+
+export interface ChatResponse {
+    response: string;
+    session_id: string;
+    action_taken?: ActionTaken;
+    follow_up_needed: boolean;
+    follow_up_question?: string;
+    suggestions: string[];
+    metadata?: Record<string, any>;
+}
+
+export interface ConversationMessage {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp: string;
+    metadata?: Record<string, any>;
+}
+
+export interface ConversationHistory {
+    success: boolean;
+    session_id: string;
+    messages: ConversationMessage[];
+    total_messages: number;
+}
+
+export interface CapabilitiesResponse {
+    categories: Array<{
+        category: string;
+        name: string;
+        endpoints: Array<{
+            path: string;
+            method: string;
+            description: string;
+        }>;
+        examples: string[];
+    }>;
+    total_endpoints: number;
+    examples: string[];
+}
+
+export interface AssistantStatus {
+    success: boolean;
+    status: string;
+    components: {
+        api_registry: {
+            status: string;
+            endpoints_registered: number;
+            categories: number;
+        };
+        intent_detection: {
+            status: string;
+            llm_provider: string;
+        };
+        conversation_manager: {
+            status: string;
+        };
+    };
+    version: string;
+}
+
+export const assistantAPI = {
+    /**
+     * Send a chat message to the AI assistant
+     */
+    async chat(request: ChatRequest): Promise<ChatResponse> {
+        try {
+            const response = await axios.post<ChatResponse>(
+                `${API_BASE_URL}/assistant/chat`,
+                request
+            );
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to send chat message'
+                );
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Get conversation history for a session
+     */
+    async getConversationHistory(sessionId: string, lastN?: number): Promise<ConversationHistory> {
+        try {
+            const params = lastN ? { last_n: lastN } : {};
+            const response = await axios.get<ConversationHistory>(
+                `${API_BASE_URL}/assistant/session/${sessionId}/history`,
+                { params }
+            );
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get conversation history'
+                );
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Clear/delete a conversation session
+     */
+    async clearSession(sessionId: string): Promise<{ success: boolean; message: string }> {
+        try {
+            const response = await axios.delete<{ success: boolean; message: string }>(
+                `${API_BASE_URL}/assistant/session/${sessionId}`
+            );
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to clear session'
+                );
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Get chatbot capabilities
+     */
+    async getCapabilities(): Promise<CapabilitiesResponse> {
+        try {
+            const response = await axios.get<CapabilitiesResponse>(
+                `${API_BASE_URL}/assistant/capabilities`
+            );
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get capabilities'
+                );
+            }
+            throw error;
+        }
+    },
+
+    /**
+     * Get assistant system status
+     */
+    async getStatus(): Promise<AssistantStatus> {
+        try {
+            const response = await axios.get<AssistantStatus>(
+                `${API_BASE_URL}/assistant/status`
+            );
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(
+                    error.response?.data?.detail || 'Failed to get status'
+                );
+            }
+            throw error;
+        }
+    },
+};
+

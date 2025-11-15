@@ -363,7 +363,7 @@ class APIRegistry:
         Returns:
             List of matching endpoints with confidence scores
         """
-        if not self.embedding_model or not self.endpoint_embeddings:
+        if not self.embedding_model or self.endpoint_embeddings is None or len(self.endpoint_embeddings) == 0:
             logger.warning("Embeddings not initialized, falling back to keyword search")
             return self._keyword_search(query, top_k, method_filter)
 
